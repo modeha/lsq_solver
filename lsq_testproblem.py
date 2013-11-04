@@ -103,19 +103,7 @@ def npz_to_lsqobj(filename, Model=LSQModel):
                        Lcon=datas['Lcon'], Ucon=datas['Ucon'],\
                        Lvar=datas['Lvar'], Uvar=datas['Uvar'],\
                        name=str(datas['name']))
-    print str(datas['name'])
     return lsq_obj
-
-def npz_to_matrix(filename):
-    "read a .npz file and return matrices"
-    datas = load_npz_to_dic(filename)
-    Q=datas['Q']; B=datas['B'];
-    d=datas['d']; c=datas['c'];
-    Lcon=datas['Lcon']; Ucon=datas['Ucon'];
-    Lvar=datas['Lvar']; Uvar=datas['Uvar'];
-    name=str(datas['name'])
-    return Q, B, d, c, Lcon, Ucon, Lvar, Uvar, name
-
 
 def lsq_tp_generator(Q, B, d, c, lcon, ucon, lvar, uvar, name,\
                      Model=LSQModel, txt='False', npz='False'):
@@ -290,30 +278,6 @@ def first_class_tp(nvar=18, prowQ=9, mcon=4 ):
             b[i] = B[i,:].sum()-m*mu
     lcon = b
     return Q,B,d,c,lcon,ucon,lvar,uvar,name 
-
-def sixeth(nvar=18, prowQ=9, mcon=4):
-    
-    n = nvar + prowQ + mcon
-    p = prowQ + mcon
-    m = mcon
-    
-    # Q randomly chosen such that Qij belong to the (-10,10)
-    Q = 10 * np.random.rand(p, n)*(np.random.randint(3, size=(p,n))-1)
-    #Q,y = test (p,n)
-    d = np.zeros(p)
-    for i in range(p): 
-        d[i]= Q[i,:].sum()
-    
-    c = np.zeros(n)
-    ucon = np.zeros(n)
-    lcon = np.zeros(n)
-    
-    #uvar = np.ones(n)*1
-    uvar = np.ones(n)
-    lvar = -np.ones(n)
-    name = str(p)+'_'+str(n)+'_l1_ls'
-    B = np.zeros((n,n))
-    return Q,B,d,c,lcon,ucon,lvar,uvar,name
         
 def second_class_tp(p,n):
     """This class  is rather ill conditioned test problems 
@@ -367,11 +331,10 @@ def fourth_class_tp(path=  "/Users/Mohsen/Documents/nlpy_mohsen/lsq/output/MATLA
     from pysparse import spmatrix
     from pysparse.sparse.pysparseMatrix import PysparseMatrix
     from  pysparse.sparse import PysparseIdentityMatrix as eye
-    
     Q,_,d,_,_,_,_,_,delta,name =  mat_py(path)
     p,n = Q.shape
     c = np.zeros(n)
-    print delta,p,n,d.shape
+    print delta,p,n
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
@@ -461,7 +424,9 @@ def mat_py(path= (os.getcwd())):
         elif file == 'delta.txt':
             delta =  (np.genfromtxt(path +'delta.txt'))
         else:
-            print
+            print "name must be one of the following names:\n"\
+                  +"Q,B,d,c,Lcon,Ucon,Lvar,Uvar"
+
     
     if B is None:
         m=n
@@ -476,6 +441,7 @@ def mat_py(path= (os.getcwd())):
         Lvar = -np.ones(n)*inf
     if Uvar is None:
         Uvar = np.ones(n)*inf
+    print path
     name = str(n)+'_'+str(p)+'_'+str(m)+'_l1_tp'+'.txt'
     return Q, B, d, c, Lcon, Ucon, Lvar, Uvar, delta, name
 
@@ -483,11 +449,12 @@ def convert_txt_to_npz():
     from os import walk
     path = "/Users/Mohsen/Documents/nlpy_mohsen/lsq/output/MATLAB/"
     l = list(walk(path))
-    dirs = l[0][1]
+    dirs = l[0][1][:-1]
     for dir in dirs:
+	#print dirs,'hhh'
 	Q,B,d,c,lcon,ucon,lvar,uvar,name =\
 	 fourth_class_tp(path= path+str(dir)+'/')
-	lsqpr = lsq_tp_generator(Q,B,d,c,lcon,ucon,lvar,uvar,name,Model=LSQRModel,npz='True')
+	lsqpr = lsq_tp_generator(Q,B,d,c,lcon,ucon,lvar,uvar,name,Model=LSQRModel)
         print lsqpr.name[:-3]
 
 def nnz_elements(probname='None',regqp='None'):
@@ -985,16 +952,7 @@ def linearoperator():
     
 def exampleliop():
         
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name = first_class_tp(2,1,3 )
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name = second_class_tp(p=3,n=4)
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name = third_class_tp(nvar=18, prowQ=9, mcon=4)
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name = fifth_class_tp(p=3,n=2)
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name = sixeth_class_tp(p=3,n=5)
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name=sixeth(nvar=2, prowQ=3, mcon=1)
-    Q,B,d,c,lcon,ucon,lvar,uvar,name = npz_to_matrix(filename=_folder+'4_2_2_l1_tp')
-
-
-
+    Q,B,d,c,lcon,ucon,lvar,uvar,name =first_class_tp(2,1,3 )
     
     Q = sp(matrix=as_llmat(Q))
     B = sp(matrix=as_llmat(B))
@@ -1017,9 +975,4 @@ if __name__ == "__main__":
     #test1()
     exampleliop()
     #linearoperator()
-    #Q,B,d,c,lcon,ucon,lvar,uvar,name = sixeth_class_tp(p=3,n=2)
-    #convert_txt_to_npz()
-    #lsqpr = LSQRModel(Q=Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
-                    #Uvar=uvar, name='test')
-
     remove_type_file()

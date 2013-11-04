@@ -13,31 +13,6 @@ from nlpy.tools import List
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
 from nlpy.krylov import SimpleLinearOperator
 from nlpy.tools import List
-from snlp import SlackNLP
-
-class MFSNLP( SlackNLP):
-    def __init__(self, nlp, **kwargs):
-        SlackNLP.__init__(self,nlp,keep_variable_bounds=False, **kwargs)
-        return
-    
-    
-    def jac(self, x, **kwargs):
-        return SimpleLinearOperator(self.n, self.m, symmetric=False,
-                         matvec=lambda u: self.jprod(x,u,**kwargs),
-                         matvec_transp=lambda u: self.jtprod(x,u,**kwargs))
-
-    def A(self):
-        """
-        Return the constraint matrix if the problem is a linear program. See the
-        documentation of :meth:`jac` for more information.
-        """
-        return self.jac([0])
-
-    def hess(self, x, z=None, **kwargs):
-        return SimpleLinearOperator(self.n, self.n, symmetric=True,
-                         matvec=lambda u: self.hprod(x,z,u,**kwargs))
-        
-        
 
 class SlackFrameworkNLP( NLPModel ):
     """
@@ -87,34 +62,19 @@ class SlackFrameworkNLP( NLPModel ):
         # Save number of variables and constraints prior to transformation
         self.original_n = self.n
         self.original_m = self.m
+        self.original_nbounds = self.nbounds
         
         # Number of slacks for inequality constraints with a lower bound
-        #n_con_low = self.nlowerC + self.nrangeC ;   self.n_con_low = n_con_low
-        n_con_low = model.nlowerC + model.nrangeC ; self.n_con_low = n_con_low
+        n_con_low = self.nlowerC + self.nrangeC ; self.n_con_low = n_con_low
 
         # Number of slacks for inequality constraints with an upper bound
-        #n_con_up = self.nupperC + self.nrangeC ; self.n_con_up = n_con_up
-        n_con_up = model.nupperC + model.nrangeC ; self.n_con_up = n_con_up
-
+        n_con_up = self.nupperC + self.nrangeC ; self.n_con_up = n_con_up
 
         # Number of slacks for variables with a lower bound
-        #n_var_low = self.nlowerB + self.nrangeB ; self.n_var_low = n_var_low
-        n_var_low = model.nlowerB + model.nrangeB ; self.n_var_low = n_var_low
-
+        n_var_low = self.nlowerB + self.nrangeB ; self.n_var_low = n_var_low
 
         # Number of slacks for variables with an upper bound
-        #n_var_up = self.nupperB + self.nrangeB ; self.n_var_up = n_var_up
-        n_var_up = model.nupperB + model.nrangeB ; self.n_var_up = n_var_up
-
-
-        # Number of slacks for the constaints
-        nSlacks_s = n_con_low + n_con_up; self.nSlacks_s = nSlacks_s
-
-        # Create more lists
-        bot = self.original_n; self.sLL = List(range(bot, bot + model.nlowerC))
-        bot += model.nlowerC;    self.sLR = List(range(bot, bot + model.nrangeC))
-        bot += model.nrangeC;    self.sUU = List(range(bot, bot + model.nupperC))
-        bot += model.nupperC;    self.sUR = List(range(bot, bot + model.nrangeC))
+        n_var_up = self.nupperB + self.nrangeB ; self.n_var_up = n_var_up
 
         # Update effective number of variables and constraints
         self.n  = self.original_n + n_con_low + n_con_up + n_var_low + n_var_up
@@ -320,7 +280,7 @@ class SlackFrameworkNLP( NLPModel ):
         p = np.zeros(n)
         vmp = v[:om].copy()
         vmp[upperC] *= -1.0
-        #vmp[rangeC] -= v[om:]
+        vmp[rangeC] -= v[om:]
 
         p[:on] = nlp.jtprod(x[:on], vmp)
 
@@ -388,15 +348,12 @@ if __name__ == '__main__':
     from Others.lsq_testproblem import *
     import numpy as np
     lsqpr  =  exampleliop()
-    lsqpr.jac(lsqpr.x0)
-    slack = MFSNLP( lsqpr ) 
-    C = slack.jac(slack.x0)
+    
+    slack = SlackFrameworkNLP( lsqpr ) 
+    j = slack.jac(slack.x0)
     A = slack.A()
-    print A
-    #C = lsqpr.jac(lsqpr.x0)
-    print as_llmat(FormEntireMatrix(C.shape[1],C.shape[0],C))
-    #print as_llmat(FormEntireMatrix(j.shape[1],j.shape[0],j))
-    #print as_llmat(FormEntireMatrix(A.shape[1],A.shape[0],A))
+    print as_llmat(FormEntireMatrix(j.shape[1],j.shape[0],j))
+    print as_llmat(FormEntireMatrix(A.shape[1],A.shape[0],A))
     #print p.shape
     #print as_llmat(FormEntireMatrix(p.shape[1],p.shape[0],p))
     #print slack.InitializeSlacks()

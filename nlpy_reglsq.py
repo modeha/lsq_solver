@@ -130,7 +130,6 @@ for probname in args:
 	
     else :
         lsqp = exampleliop()#npz_to_lsqobj(probname[:-4],Model=LSQModel)
-
 	
     t_setup = cputime() - t_setup
 
