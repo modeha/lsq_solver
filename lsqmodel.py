@@ -212,7 +212,9 @@ if __name__ == '__main__':
     from lsq_testproblem import *
     from Others.toolslsq import as_llmat
     lsqpr = exampleliop()
-    #print lsqp.obj(np.zeros(6))  
+    #print lsqp.obj(np.zeros(6))
+    C = lsqpr.jac(lsqpr.x0)
+    print as_llmat(FormEntireMatrix(C.shape[0],C.shape[1],C))
     q = lsqpr.hess(1)
     print q.shape
     print FormEntireMatrix(10,10,q)
