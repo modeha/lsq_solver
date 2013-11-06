@@ -736,7 +736,8 @@ class RegQPInteriorPointSolver(object):
         self.log.debug('Computing initial guess')
 
         # Set up augmented system matrix and factorize it.
-        self.set_initial_guess_system()
+        self.update_linear_system(np.ones(ns), np.ones(ns), 1, 1)
+        #self.set_initial_guess_system()
         self.LBL = LBLContext(self.H, sqd=self.regdu > 0) # Analyze + factorize
 
         # Assemble first right-hand side and solve.
@@ -1188,8 +1189,33 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         #self.normA = self.A.matrix.norm('fro')
 
         # Initialize augmented matrix.
-        self.H = self.initialize_kkt_matrix()
+        #    nx   ns       nr    m       ns
+        #
+        # [ -ρI            Q'    A1'          ]    :nx   ^
+        # [      -ρI             A2'  Z^{1/2} ]    :ns   | n
+        # [   Q            I                  ]    :nr   v
+        # [  A1   A2             δI           ]    :m
+        # [       Z^{1/2}                S    ]    :ns
+    
+##        self.H = self.initialize_kkt_matrix()
+        self.I_nx = ZeroOperator(nx, nx, symmetric=True)
+        self.I_ns = ZeroOperator(ns, ns, symmetric=True)
+        self.I_nr =  IdentityOperator(nr, symmetric=True)
+        self.I_m  = ZeroOperator(m, m, symmetric=True)
+        
+        self.Z_nx_ns = ZeroOperator(nx, ns).T
+        self.Z_ns_nr = ZeroOperator(ns, nr).T
+        self.Z_nr_ns = ZeroOperator(nr, ns).T
+        self.Z_nr_m = ZeroOperator(nr, m).T
+        self.Z_m_ns = ZeroOperator(m, ns).T
+        self.Z_ns_nx = ZeroOperator(ns, nx).T
 
+        self.H = BlockLinearOperator([[self.I_nx,self.Z_nx_ns,self.Q.T,self.A1.T,self.Z_nx_ns],\
+                                 [self.I_ns,self.Z_ns_nr,self.A2.T,self.I_ns],\
+                                 [self.I_nr,self.Z_nr_m,self.Z_nr_ns],\
+                                 [self.I_m,self.Z_m_ns],\
+                                 [self.I_ns]], symmetric=True)
+        #print FormEntireMatrix(self.H.shape[0],self.H.shape[1],self.H)
         # We perform the analyze phase on the augmented system only once.
         # self.LBL will be initialized in solve().
         self.LBL = None
@@ -1235,48 +1261,6 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         n  = nx + nr + ns
         m  = self.b.shape[0]
         return (n, nx, nr, ns, m)
-
-    def initialize_kkt_matrix(self):
-        #    nx   ns       nr    m       ns
-        #
-        # [ -ρI            Q'    A1'          ]    :nx   ^
-        # [      -ρI             A2'  Z^{1/2} ]    :ns   | n
-        # [   Q            I                  ]    :nr   v
-        # [  A1   A2             δI           ]    :m
-        # [       Z^{1/2}                S    ]    :ns
-    
-        qp = self.lsq
-        (n, nx, nr, ns, m) = self.get_dimensions()
-        
-        I_nx = ZeroOperator(nx, nx, symmetric=True)
-        I_ns = ZeroOperator(ns, ns, symmetric=True)
-        I_nr =  IdentityOperator(nr, symmetric=True)
-        I_m  = ZeroOperator(m, m, symmetric=True)
-        
-        Z_nx_ns = ZeroOperator(nx, ns).T
-        Z_ns_nr = ZeroOperator(ns, nr).T
-        Z_nr_ns = ZeroOperator(nr, ns).T
-        Z_nr_m = ZeroOperator(nr, m).T
-        Z_m_ns = ZeroOperator(m, ns).T
-        Z_ns_nx = ZeroOperator(ns, nx).T
-
-        H = BlockLinearOperator([[I_nx,Z_nx_ns,self.Q.T,self.A1.T,Z_nx_ns],\
-                                 [I_ns,Z_ns_nr,self.A2.T,I_ns],\
-                                 [I_nr,Z_nr_m,Z_nr_ns],\
-                                 [I_m,Z_m_ns],\
-                                 [I_ns]], symmetric=True)
-        
-        #print as_llmat(FormEntireMatrix(H.shape[0],H.shape[1],H))
-        #zz
-
-        #H = PysparseMatrix(size=n + m + ns,
-                           #sizeHint=qp.nnzj + nx + m + 3 * ns,
-                           #symmetric=True)
-        #H[nx+ns:n, :nx]= self.Q
-        #H[nx+ns:n, nx+ns:n] = self.J[:nr, nx:nx+nr]  # = I.
-        #H[n:n+m, :nx+ns] = self.A
-        return H
-    
     
     def initialize_rhs(self):
         (n, nx, nr, ns, m) = self.get_dimensions()
@@ -1642,6 +1626,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         #finished = True
         #continue
 
+            self.update_linear_system(s, z, regpr, regdu)            
             if PredictorCorrector:
                 # Use Mehrotra predictor-corrector method.
                 # Compute affine-scaling step, i.e. with centering = 0.
@@ -1806,7 +1791,8 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         self.log.debug('Computing initial guess')
 
         # Set up augmented system matrix and factorize it.
-        self.set_initial_guess_system()
+        self.update_linear_system(np.ones(ns), np.ones(ns), 1, 1)
+        #self.set_initial_guess_system()
 #self.LBL = LBLContext(self.H, sqd=True) # Analyze + factorize
 
         # Assemble first right-hand side and solve.
@@ -1861,43 +1847,10 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         return (xr,y,z,s)
 
 
-    def set_initial_guess_system(self):
-        #    nx   ns      nr    m       ns
-        #
-        # [ -ρI    Q'            A1'          ]    :nx   ^
-        # [      -ρI             A2'  Z^{1/2} ]    :ns   | n
-        # [   Q            I                  ]    :nr   v
-        # [  A1   A2             δI           ]    :m
-        # [       Z^{1/2}                S    ]    :ns
-        
-        (n, nx, nr, ns, m) = self.get_dimensions()
-        
-        I_nx = IdentityOperator(nx, symmetric=True)
-        I_ns = IdentityOperator(ns, symmetric=True)
-        I_nr =  IdentityOperator(nr, symmetric=True)
-        I_m  = IdentityOperator(m,  symmetric=True)
-        
-        Z_nx_ns = ZeroOperator(nx, ns).T
-        Z_ns_nr = ZeroOperator(ns, nr).T
-        Z_nr_ns = ZeroOperator(nr, ns).T
-        Z_nr_m = ZeroOperator(nr, m).T
-        Z_m_ns = ZeroOperator(m, ns).T
-        Z_ns_nx = ZeroOperator(ns, nx).T
-
-        H = BlockLinearOperator([[I_nx*(-1.0e-4),Z_nx_ns,self.Q.T,self.A1.T,Z_nx_ns],\
-                                 [I_ns*(-1.0e-4),Z_ns_nr,self.A2.T,I_ns],\
-                                 [I_nr,Z_nr_m,Z_nr_ns],\
-                                 [I_m*(1.0e-4),Z_m_ns],[I_ns]], symmetric=True)
-
-        #(n, nx, nr, ns, m) = self.get_dimensions()
-        #self.H.put(-1.0e-4, range(nx))                                  # -ρI.
-        #self.H.put(-1.0e-4, range(nx, nx + ns))                         # -ρI.
-        #self.H.put( 1.0e-4, range(n, n + m))                            #  δI.
-        #self.H.put( 1.0, range(n + m, n + m + ns), range(nx, nx + ns))  #   Z.
-        #self.H.put( 1.0, range(n + m, n + m + ns))                      #   S.
-        self.H +=H
-        #print as_llmat(FormEntireMatrix(H.shape[0],H.shape[1],H))
-        return
+##    def set_initial_guess_system(self):
+##        (n, nx, nr, ns, m) = self.get_dimensions()
+##        self.update_linear_system(np.ones(ns), np.ones(ns), 1, 1)
+##        return
 
     def set_initial_guess_rhs(self):
         (n, nx, nr, ns, m) = self.get_dimensions()
@@ -1914,55 +1867,38 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         return
 
     def update_linear_system(self, s, z, regpr, regdu, **kwargs):
-        #    nx   ns      nr    m       ns
+        #    nx   ns       nr    m       ns
         #
-        # [ -ρI    Q'            A1'          ]    :nx   ^
+        # [ -ρI            Q'    A1'          ]    :nx   ^
         # [      -ρI             A2'  Z^{1/2} ]    :ns   | n
         # [   Q            I                  ]    :nr   v
         # [  A1   A2             δI           ]    :m
         # [       Z^{1/2}                S    ]    :ns
         
         (n, nx, nr, ns, m) = self.get_dimensions()
-        I_nx = IdentityOperator(nx,symmetric=True)
-        I_ns = IdentityOperator(ns, symmetric=True)
-        I_nr =  IdentityOperator(nr, symmetric=True)
-        I_m  = IdentityOperator(m,  symmetric=True)
-        
 
-        Z_nx_ns = ZeroOperator(nx, ns).T
-        Z_ns_nr = ZeroOperator(ns, nr).T
-        Z_nr_ns = ZeroOperator(nr, ns).T
-        Z_nr_m = ZeroOperator(nr, m).T
-        Z_m_ns = ZeroOperator(m, ns).T
-        Z_ns_nx = ZeroOperator(ns, nx).T
-        
-        Z_A1 = ZeroOperator(m, nx).T
-        Z_A2 = ZeroOperator(m, ns).T
-        Z_Q = ZeroOperator(nr, nx).T
-        r = 0; u = 0
-        (n, nx, nr, ns, m) = self.get_dimensions()
+        I_nx = IdentityOperator(nx, symmetric=True)
+        I_ns = IdentityOperator(ns, symmetric=True)
+        I_m  = IdentityOperator(m,  symmetric=True)
+##        z_sqrt = DiagonalOperator((np.ones(ns)), symmetric=True)
+##        s  = DiagonalOperator(np.ones(ns), symmetric=True)
+        r = 0; u = 0;
 
         if regpr > 0:
             r = regpr
 
         if regdu > 0:
             u = regdu
-        # BlockDiagonalLinearOperator([A, E], symmetric=True)
-        #self.H.put(np.sqrt(z), range(n+m, n+m+ns), range(nx, nx + ns))
-        #self.H.put( s, range(n+m, n+m+ns))
+                
         z_sqrt = DiagonalOperator((np.sqrt(z)), symmetric=True)
-        s_ = DiagonalOperator(s, symmetric=True)
-        #print as_llmat(FormEntireMatrix(s_.shape[0],s_.shape[1],I_ns*s_))
-        #H = BlockDiagonalLinearOperator([I_nx*(-r), I_ns*(-r), I_nr,I_m*(u),I_ns*s_], symmetric=True)
-        #print as_llmat(FormEntireMatrix(H.shape[0],H.shape[1],H))
-        H = BlockLinearOperator([[I_nx*(-r),Z_nx_ns,Z_Q.T,Z_A1.T,Z_nx_ns],\
-                                 [I_ns*(-r),Z_ns_nr,Z_A2.T,I_ns*(z_sqrt)],\
-                                 [I_nr,Z_nr_m,Z_nr_ns],\
-                                 [I_m*(u),Z_m_ns],\
-                                 [I_ns*s_]], symmetric=True)
+        s  = DiagonalOperator(s, symmetric=True)
+            
+        self.H[0,0] = -I_nx*(r)
+        self.H[1,1] = -I_ns*(r)
+        self.H[1,4] = z_sqrt
+        self.H[3,3] = I_m*(u)
+        self.H[4,4] = s 
 
-        #print as_llmat(FormEntireMatrix(H.shape[0],H.shape[1],H))
-        self.H +=H
         return
 
 
@@ -2074,7 +2010,6 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         #lsqr = LSMRFramework(B)
         lsqr = eval(self.iter_solver+'(B)')
 
-    
 
         lsqr.solve(b,atol = 1e-12, btol = 1e-12,M = N, N = M)
     
@@ -2088,6 +2023,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         neig = 0
 
         return sol_final, nr, neig
+
 
 if __name__ == "__main__":
     import nlpy_reglsq
