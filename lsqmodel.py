@@ -211,15 +211,12 @@ if __name__ == '__main__':
     from slack_nlp import SlackFrameworkNLP
     from lsq_testproblem import *
     from Others.toolslsq import as_llmat
-    lsqpr = exampleliop()
-    #print lsqp.obj(np.zeros(6))  
-    q = lsqpr.hess(1)
-    print q.shape
-    print FormEntireMatrix(10,10,q)
-    slack = SlackFrameworkNLP( lsqpr ) 
-    p = slack.jac(slack.x0)
-    print slack.hess(1).shape
+    #lsqpr = exampleliop()
+    ls = l1_ls_class_tp(2,3)
+    #print ls.c.size
+    #print ls.obj(range(12))
     
+
 
     #A = LinearOperator(nargin=3, nargout=3,matvec=lambda v: 2*v, symmetric=True)
     

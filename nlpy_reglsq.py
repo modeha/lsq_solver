@@ -1,4 +1,4 @@
-from lsq_testproblem import npz_to_lsqobj, exampleliop
+from lsq_testproblem import npz_to_lsqobj, exampleliop,l1_ls_class_tp
 from lsqmodel import LSQModel, LSQRModel
 from nlpy import __version__
 from slack_nlp import SlackFrameworkNLP as SlackFramework
@@ -116,20 +116,17 @@ numpy.set_printoptions(precision=3, linewidth=70, threshold=10, edgeitems=2)
 
 multiple_problems = len(args) > 1
 
-if not options.verbose:
-    log.info(hdr)
-    log.info('-'*len(hdr))
+#if not options.verbose:
+    #log.info(hdr)
+    #log.info('-'*len(hdr))
 args = ['example']    
 for probname in args:
-    print probname
-    
-
     t_setup = cputime()
     if options.sys4x4:
         lsqp = npz_to_lsqobj(probname[:-4],Model=LSQRModel)
 	
     else :
-        lsqp = exampleliop()#npz_to_lsqobj(probname[:-4],Model=LSQModel)
+        lsqp = l1_ls_class_tp(34,35)#340,350)#3400,3500#npz_to_lsqobj(probname[:-4],Model=LSQModel)
 	
     t_setup = cputime() - t_setup
 

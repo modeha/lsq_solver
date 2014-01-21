@@ -17,7 +17,6 @@ from nlpy.linalg.scaling import mc29ad
 from nlpy.tools.norms import norm2, norm_infty
 from nlpy.tools import sparse_vector_class as sv
 from nlpy.tools.timing import cputime
-from nlpy.tools.norms import normest
 
 from pykrylov.linop import *
 from lsq_testproblem import *
@@ -27,7 +26,6 @@ from pysparse.sparse.pysparseMatrix import PysparseMatrix
 import numpy as np
 from math import sqrt
 import sys, logging
-from numpy.linalg import norm
 
 import pdb
 from lsq_testproblem import *
@@ -1133,7 +1131,6 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         self.lsq = lsq
         self.qp = lsq
-        self.tolerance = 1.0e-4
 
         # The Jacobian has the form
         #
@@ -1163,8 +1160,14 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         # Apply in-place problem scaling if requested.
         self.prob_scaled = False
+    
+        #if scale:
+            #self.t_scale = cputime()
+            #self.scale()
+            #self.t_scale = cputime() - self.t_scale
 
         self.Q = ReducedLinearOperator(self.J, range(0,nr),range(0,nx))
+        #print FormEntireMatrix(nx,nr,self.Q)
         # The Jacobian has the form
         #    nx  nr  ns
         #  [ Q   I   0 ]   : nr
@@ -1178,10 +1181,9 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         self.normdb = norm_infty(self.db)
         self.normc  = norm_infty(self.c)
         self.normbc = 1 + max(self.normb, self.normc)
-        tol = 1e-6;maxits = 100
-        self.normQ,_ = normest(self.Q, tol=tol, maxits=maxits)
-        self.normJ,_ = normest(self.J, tol=tol, maxits=maxits)
-        self.normA,_ = normest(self.A, tol=tol, maxits=maxits)
+        #self.normQ = self.Q.matrix.norm('fro')
+        self.normJ = 100#self.J.matrix.norm('fro')
+        #self.normA = self.A.matrix.norm('fro')
 
         # Initialize augmented matrix.
         #    nx   ns       nr    m       ns
@@ -1192,23 +1194,29 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         # [  A1   A2             δI           ]    :m
         # [       Z^{1/2}                S    ]    :ns
     
-        self.I_nx = IdentityOperator(nx, symmetric=True)
-        self.I_ns = IdentityOperator(ns, symmetric=True)
-        self.I_m   = IdentityOperator(m,  symmetric=True)
+##        self.H = self.initialize_kkt_matrix()
+        self.I_nx = ZeroOperator(nx, nx, symmetric=True)
+        self.I_ns = ZeroOperator(ns, ns, symmetric=True)
         self.I_nr =  IdentityOperator(nr, symmetric=True)
+        self.I_m  = ZeroOperator(m, m, symmetric=True)
         
-        Z_nx_ns = ZeroOperator(nx, ns).T
-        Z_ns_nr = ZeroOperator(ns, nr).T
-        Z_nr_ns = ZeroOperator(nr, ns).T
-        Z_nr_m = ZeroOperator(nr, m).T
-        Z_m_ns = ZeroOperator(m, ns).T
-        Z_ns_nx = ZeroOperator(ns, nx).T
+        self.Z_nx_ns = ZeroOperator(nx, ns).T
+        self.Z_ns_nr = ZeroOperator(ns, nr).T
+        self.Z_nr_ns = ZeroOperator(nr, ns).T
+        self.Z_nr_m = ZeroOperator(nr, m).T
+        self.Z_m_ns = ZeroOperator(m, ns).T
+        self.Z_ns_nx = ZeroOperator(ns, nx).T
 
-        self.H = BlockLinearOperator([[self.I_nx*0,Z_nx_ns,self.Q.T,self.A1.T,Z_nx_ns],\
-                                 [self.I_ns*0,Z_ns_nr,self.A2.T,self.I_ns*0],\
-                                 [self.I_nr,Z_nr_m,Z_nr_ns],\
-                                 [self.I_m*0,Z_m_ns],\
-                                 [self.I_ns*0]], symmetric=True)
+        self.H = BlockLinearOperator([[self.I_nx,self.Z_nx_ns,self.Q.T,self.A1.T,self.Z_nx_ns],\
+                                 [self.I_ns,self.Z_ns_nr,self.A2.T,self.I_ns],\
+                                 [self.I_nr,self.Z_nr_m,self.Z_nr_ns],\
+                                 [self.I_m,self.Z_m_ns],\
+                                 [self.I_ns]], symmetric=True)
+        #print FormEntireMatrix(self.H.shape[0],self.H.shape[1],self.H)
+        # We perform the analyze phase on the augmented system only once.
+        # self.LBL will be initialized in solve().
+        self.LBL = None
+
         # Set regularization parameters.
         self.regpr = kwargs.get('regpr', 1.0) ; self.regpr_min = 1.0e-8
         self.regdu = kwargs.get('regdu', 1.0) ; self.regdu_min = 1.0e-8
@@ -1263,6 +1271,130 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         rhs[n+m:] = -s * np.sqrt(z)
         return
 
+    def scale(self, **kwargs):
+        """
+        Equilibrate the constraint matrix of the linear program. Equilibration
+        is done by first dividing every row by its largest element in absolute
+        value and then by dividing every column by its largest element in
+        absolute value. In effect the original problem::
+
+            minimize c'x + 1/2 |r|^2
+            subject to  Q  x + r    = d,
+                        A1 x + A2 s = b, s >= 0
+
+        is converted to::
+
+            minimize (Cc)'x + 1/2 |Dr|^2
+            subject to  [R   ] [Q   0   I] [C    ] [x]   [R   ] [d]
+                        [   U] [A1  A2  0] [  E  ] [s] = [   U] [b],
+                                           [    D] [r]
+                        s >= 0,
+
+        where the diagonal matrices R, U and C, E, D, operate row and column
+        scaling respectively.
+
+        Upon return, the Jacobian and the right-hand side are scaled and the
+        members `row_scale` and `col_scale` are set to the row and column
+        scaling factors.
+
+        The scaling may be undone by subsequently calling :meth:`unscale`. It
+        is necessary to unscale the problem in order to unscale the final dual
+        variables. Normally, the :meth:`solve` method takes care of unscaling
+        the problem upon termination.
+        """
+
+        log = self.log
+        (n, nx, nr, ns, m) = self.get_dimensions()
+
+        row_scale = np.zeros(nr+m)
+        col_scale = np.zeros(n)
+        (values, irow, jcol) = self.J.find()
+
+        if self.verbose:
+            log.info('Smallest and largest elements of A prior to scaling: ')
+            log.info('%8.2e %8.2e' % (np.min(np.abs(values)),
+                                      np.max(np.abs(values))))
+
+        # Find row scaling.
+        for k in range(len(values)):
+            row = irow[k]
+            val = abs(values[k])
+            row_scale[row] = max(row_scale[row], val)
+        row_scale[row_scale == 0.0] = 1.0
+
+        if self.verbose:
+            log.info('Max row scaling factor = %8.2e' % np.max(row_scale))
+
+        # Apply row scaling to J and db.
+        values /= row_scale[irow]
+        self.db /= row_scale
+
+        # Find column scaling.
+        for k in range(len(values)):
+            col = jcol[k]
+            val = abs(values[k])
+            col_scale[col] = max(col_scale[col], val)
+        col_scale[col_scale == 0.0] = 1.0
+
+        if self.verbose:
+            log.info('Max column scaling factor = %8.2e' % np.max(col_scale))
+
+        # Apply column scaling to J, c and d.
+        values /= col_scale[jcol]
+        self.c /= col_scale[:nx]
+        #self.db[:nr] /= col_scale[nx:nx+nr]
+
+        if self.verbose:
+            log.info('Smallest and largest elements of A after scaling: ')
+            log.info('%8.2e %8.2e' % (np.min(np.abs(values)),
+                                      np.max(np.abs(values))))
+
+        # Overwrite J with scaled values.
+        self.J.put(values, irow, jcol)
+        self.normJ = norm2(values)   # Frobenius norm of J.
+
+        # Save row and column scaling.
+        self.row_scale = row_scale
+        self.col_scale = col_scale
+
+        self.prob_scaled = True
+        return
+
+    def unscale(self, **kwargs):
+        """
+        Restore the constraint matrix A, the right-hand side b and the cost
+        vector c to their original value by undoing the row and column
+        equilibration scaling.
+        """
+        (n, nx, nr, ns, m) = self.get_dimensions()
+        row_scale = self.row_scale
+        col_scale = self.col_scale
+
+        # Unscale constraint matrix A.
+        self.J.row_scale(row_scale)
+        self.J.col_scale(col_scale)
+
+        # Unscale right-hand side and cost vectors.
+        self.db *= row_scale
+        self.c *= col_scale[:nx]
+        self.db[:nr] *= col_scale[nx:nx+nr]
+
+        # Recover unscaled multipliers y and z.
+        self.y *= self.row_scale[nr:]
+        self.z /= self.col_scale[nx+nr:]
+
+        self.prob_scaled = False
+
+        # Recover unscaled Q and A.
+        self.Q = self.J[:nr, :nx]
+        A1 = self.J[nr:, :nx]
+        A2 = self.J[nr:, nx+nr:]
+        self.A  = PysparseMatrix(nrow=m, ncol=nx+ns, symmetric=False,
+                                 sizeHint=A1.nnz + A2.nnz)
+        self.A[:, :nx] = A1
+        self.A[:, nx:] = A2   # A = [A1  A2].
+        return
+
     def solve(self, **kwargs):
         """
         Solve the input problem with the primal-dual-regularized
@@ -1296,7 +1428,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         (n, nx, nr, ns, m) = self.get_dimensions()
 
         itermax = kwargs.get('itermax', max(100,10*qp.n))
-        tolerance = kwargs.get('tolerance', self.tolerance)
+        tolerance = kwargs.get('tolerance', 1.0e-6)
         PredictorCorrector = kwargs.get('PredictorCorrector', True)
         check_infeasible = kwargs.get('check_infeasible', True)
 
@@ -1459,7 +1591,38 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
             factorized = False
             degenerate = False
             nb_bump = 0
-            
+    #while not factorized and not degenerate:
+
+        #self.update_linear_system(s, z, regpr, regdu)
+        #self.log.debug('Factorizing')
+        #self.LBL.factorize(H)
+        #factorized = True
+
+        ## If the augmented matrix does not have full rank, bump up the
+        ## regularization parameters.
+        #if not self.LBL.isFullRank:
+            #if self.verbose:
+                #self.log.info('Primal-Dual Matrix Rank Deficient' + \
+                              #'... bumping up reg parameters')
+
+            #if regpr == 0. and regdu == 0.:
+                #degenerate = True
+            #else:
+                #if regpr > 0:
+                    #regpr *= 100
+                #if regdu > 0:
+                    #regdu *= 100
+                #nb_bump += 1
+                #degenerate = nb_bump > self.bump_max
+            #factorized = False
+
+    ## Abandon if regularization is unsuccessful.
+    #if not self.LBL.isFullRank and degenerate:
+        #status = 'Unable to regularize sufficiently.'
+        #short_status = 'degn'
+        #finished = True
+        #continue
+
             self.update_linear_system(s, z, regpr, regdu)            
             if PredictorCorrector:
                 # Use Mehrotra predictor-corrector method.
@@ -1626,7 +1789,9 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         # Set up augmented system matrix and factorize it.
         self.update_linear_system(np.ones(ns), np.ones(ns), 1, 1)
-        
+        #self.set_initial_guess_system()
+#self.LBL = LBLContext(self.H, sqd=True) # Analyze + factorize
+
         # Assemble first right-hand side and solve.
         rhs = self.set_initial_guess_rhs()
         (step, nres, neig) = self.solveSystem(rhs)
@@ -1678,6 +1843,12 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         return (xr,y,z,s)
 
+
+##    def set_initial_guess_system(self):
+##        (n, nx, nr, ns, m) = self.get_dimensions()
+##        self.update_linear_system(np.ones(ns), np.ones(ns), 1, 1)
+##        return
+
     def set_initial_guess_rhs(self):
         (n, nx, nr, ns, m) = self.get_dimensions()
         rhs = self.initialize_rhs()
@@ -1703,9 +1874,11 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         
         (n, nx, nr, ns, m) = self.get_dimensions()
 
-        I_nx = self.I_nx #IdentityOperator(nx, symmetric=True)
-        I_ns = self.I_ns #IdentityOperator(ns, symmetric=True)
-        I_m  = self.I_m  #IdentityOperator(m,  symmetric=True)
+        I_nx = IdentityOperator(nx, symmetric=True)
+        I_ns = IdentityOperator(ns, symmetric=True)
+        I_m  = IdentityOperator(m,  symmetric=True)
+##        z_sqrt = DiagonalOperator((np.ones(ns)), symmetric=True)
+##        s  = DiagonalOperator(np.ones(ns), symmetric=True)
         r = 0; u = 0;
 
         if regpr > 0:
@@ -1722,7 +1895,9 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         self.H[1,4] = z_sqrt
         self.H[3,3] = I_m*(u)
         self.H[4,4] = s 
+
         return
+
 
     def get_affine_scaling_dxsyz(self, step, xr, s, y, z):
         return self.get_dxsyz(step, xr, s, y, z)
@@ -1770,12 +1945,15 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
     
 
         """
+        qp = self.lsq
+        (n, nx, nr, ns, m) = self.get_dimensions()
         H = self.H
-        
-        A = H[:2,:2]
-        B = H[2:,:2]
-        C = H[2:,2:]
-        
+        #A = H[:nx+ns,:nx+ns]
+        A = ReducedLinearOperator(H, range(0,nx+ns),range(0,nx+ns))
+        #B = H[nx+ns:,:nx+ns]
+        B = ReducedLinearOperator(H, range(nx+ns,n+m+ns),range(0,nx+ns))
+        #C = H[nx+ns:,nx+ns:]
+        C = ReducedLinearOperator(H, range(nx+ns,n+m+ns),range(nx+ns,n+m+ns))
         return A,B,C
 
     def solveSystem(self, rhs, itref_threshold=1.0e-5, nitrefmax=5):
@@ -1801,28 +1979,37 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         e = ones(p)
         I = DiagonalOperator(-e)
         
+        #I = PysparseSpDiagsMatrix(size=p, vals=(0*e,-e), pos=(-1,0))
+
         A = A*I
+        #mA,nA = A.shape 
+        #mC,nC = C.shape 
         H = A*I
+        
 
+        #A = PysparseMatrix(matrix=A)
+        #B = PysparseLinearOperator(B)
+
+        #x_M = rhs[:n]
+        #y_M = rhs[n:]
         M = DiagonalOperator(1/(A*e))
-        mc,nc = C.shape
-        ec = ones(mc)
-        N = DiagonalOperator(1/(C*ec))
-
+        #print as_llmat(FormEntireMatrix(C.shape[0],C.shape[1],C))
+        #N = DiagonalOperator(1/C.takeDiagonal())
+        N = DiagonalOperator(1/(C*e))
         #Construisons g,f et resolvons Ax_0=f, b=[g-Bx,0]
         g = rhs[n:]
         f = rhs[:n] 
     
-        x_0 = -M*f
+        x_0 = -M*f       
         b = g-B*x_0
 
         #lsqr = CRAIGFramework(B)
         #lsqr = LSMRFramework(B)
         lsqr = eval(self.iter_solver+'(B)')
 
-        t0 = cputime()
+
         lsqr.solve(b,atol = 1e-12, btol = 1e-12,M = N, N = M)
-        #print cputime() - t0
+    
         xsol = x_0 + lsqr.x
         w = b - B * lsqr.x
         ysol = N(w)
@@ -1837,7 +2024,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
 
 if __name__ == "__main__":
     import nlpy_reglsq
-    from lsq_testproblem import exampleliop,l1_ls_class_tp
+    from lsq_testproblem import exampleliop
     import lsqp 
     #d = np.random.random(10)
     #H = DiagonalOperator(d)

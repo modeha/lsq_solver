@@ -1,6 +1,6 @@
 from lsqmodel import LSQModel, LSQRModel, FormEntireMatrix
 from Others.toolslsq import *
-from Others.dctt import dctt, test
+from Others.dctt import dctt, test, idctt,l1_ls_itre
 
 from numpy import fft, array, arange, zeros, dot, transpose
 from pysparse import spmatrix
@@ -893,45 +893,6 @@ def test1():
     lsqpr = lsq_tp_generator(Q,B,d,c,lcon,ucon,lvar,uvar,name,Model=LSQRModel,\
                              txt='False', npz='True')
     print lsqpr.name
-##def normest(A, tol=1.0e-6, maxits=100):
-##    """
-##    Estimate the spectral norm of the matrix A.
-##    The matrix should behave like a linear operator, i.e. allow for
-##    matrix-vector products and transposed-matrix-vector products to
-##    be performed via A*x and A.T*y.
-##    """
-##    m, n = A.shape
-##    itn = 0
-##
-##    # Compute an estimate of the abs-val column sums.
-##    v = np.ones(m)
-##    v[np.random.randn(m) < 0] = -1
-##    x = abs(A.T*v)
-##
-##    # Normalize the starting vector.
-##    e = norm(x)
-##    if e == 0:
-##        return e, itn
-##    x = x/e
-##    e0 = 0
-##    while abs(e-e0) > tol*e:
-##        e0 = e
-##        Ax = A*x
-##        normAx = norm(Ax)
-##        if normAx == 0:
-##            Ax = np.random.rand(m)
-##            normAx = norm(Ax)
-##        x = A.T*Ax
-##        normx = norm(x)
-##        e = normx / normAx
-##        x = x / normx
-##        itn += 1
-##        if itn > maxits:
-##            print "Warning: normest didn't converge!"
-##            break
-##    return e, itn
-##
-##    
 def linearoperator():
     np.set_printoptions(precision=3, linewidth=80, threshold=10, edgeitems=3)
     Q,B,d,c,lcon,ucon,lvar,uvar,name = fifth_class_tp(8,11)
@@ -990,7 +951,7 @@ def linearoperator():
 def exampleliop():
         
 ##    Q,B,d,c,lcon,ucon,lvar,uvar,name = first_class_tp(3,2,2)#(2,2,3 )
-    Q,B,d,c,lcon,ucon,lvar,uvar,name = fifth_class_tp(100,40)
+    Q,B,d,c,lcon,ucon,lvar,uvar,name = fifth_class_tp(499,599)
     
     Q = sp(matrix=as_llmat(Q))
     B = sp(matrix=as_llmat(B))
@@ -1005,6 +966,8 @@ def exampleliop():
 
     lsqpr = LSQRModel(Q=Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
                     Uvar=uvar, name='test')
+    #print Q.shape,B.shape,d.shape,c.shape,lcon.shape,ucon.shape,lvar.shape
+
     #lsqpr = LSQRModel(Q=lsqp.Q, B=lsqp.B, d=lsqp.d, c=lsqp.c, Lcon=lsqp.Lcon,\
                       #Ucon=lsqp.Ucon, Lvar=lsqp.Lvar,Uvar=lsqp.Uvar, name=lsqp.name)
     return lsqpr
@@ -1012,6 +975,31 @@ def print_matrix(operator_object):
     m,n = operator_object.shape
     print as_llmat(FormEntireMatrix(m,n,operator_object))
     return
+def l1_ls_class_tp(p=0,n=0):
+    Q,y = l1_ls_itre(p,n)
+    d = y[:,0]
+    
+    c = np.zeros(n)
+    delta = 0.01
+    c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
+    ucon = np.zeros(2*n)
+    lcon = -np.ones(2*n)*inf
+    uvar = np.ones(2*n)*inf
+    lvar = -np.ones(2*n)*inf
+
+    I = IdentityOperator(n, symmetric=True)
+    # Build [ I  -I]
+    #       [-I  -I]
+    B = BlockLinearOperator([[I, -I], [-I]], symmetric=True)
+
+    Q_ = ZeroOperator(n,p)
+    new_Q = BlockLinearOperator([[Q,Q_]])
+    p, n = new_Q.shape
+    m, n = B.shape
+    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
+    lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
+                    Uvar=uvar, name='test')
+    return lsqpr
 
 if __name__ == "__main__":
     #test1()
@@ -1021,52 +1009,5 @@ if __name__ == "__main__":
     import logging
     import sys
     from numpy.linalg import norm
-
-    # Create root logger.
-##    log = logging.getLogger('blk-ops')
-##    log.setLevel(logging.DEBUG)
-##    fmt = logging.Formatter('%(name)-8s %(levelname)-8s %(message)s')
-##    hndlr = logging.StreamHandler(sys.stdout)
-##    hndlr.setFormatter(fmt)
-##    log.addHandler(hndlr)
-
-    A = LinearOperator(nargin=3, nargout=3,
-                       matvec=lambda v: 2*v, symmetric=True)
-    B = LinearOperator(nargin=4, nargout=3, matvec=lambda v: v[:3],
-                       matvec_transp=lambda v: np.concatenate((v, np.zeros(1))))
-    C = LinearOperator(nargin=3, nargout=2, matvec=lambda v: 3*v[:2],
-                       matvec_transp=lambda v: 3*np.concatenate((v, np.zeros(1))))
-    D = LinearOperator(nargin=4, nargout=2, matvec=lambda v: 4*v[:2],
-                       matvec_transp=lambda v: 4*np.concatenate((v, np.zeros(2))))
-    E = LinearOperator(nargin=4, nargout=4,
-                       matvec=lambda v: -v, symmetric=True)
-    E = LinearOperator(nargin=4, nargout=4,
-                       matvec=lambda v: -v, symmetric=True)
-    F = LinearOperator(nargin=2, nargout=2,
-                       matvec=lambda v: 6*v, symmetric=True)
-    print "A"
-    print_matrix(A)
-    print"B"
-    print_matrix(B)
-    print "C"
-    print_matrix(C.T)
-    print "D"
-    print_matrix(D.T)
-    print "E"
-    print_matrix(E)
-    print "F"
-    print_matrix(F)
-    print 
-    # Build [A  B  C']
-    #       [B' E  D']
-    #       [C  D  F ]
-    K5 = BlockLinearOperator([[A, B, C.T], [E, D.T], [F]], symmetric=True)
-    H = K5[1:,:]
-    print as_llmat(H.to_array())
-##    print as_llmat(FormEntireMatrix(H.shape[0],H.shape[1],H))
-##    print
-##    print H.shape
-##    H = H[1:,1:]
-##    print as_llmat(FormEntireMatrix(H.shape[0],H.shape[1],H))
-
+    ls = l1_ls_class_tp(4,5)
     remove_type_file()
