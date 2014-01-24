@@ -1,5 +1,4 @@
 from slack_nlp import SlackFrameworkNLP as SlackFramework
-from Others.lsq import lsq
 
 from cqp import RegQPInteriorPointSolver
 from cqp import RegQPInteriorPointSolver3x3
@@ -117,13 +116,5 @@ class RegLSQPInteriorPointIterativeSolver4x4(RegLSQInteriorPointIterativeSolver4
         super(RegLSQPInteriorPointIterativeSolver4x4, self).__init__(lsqpsf, *args,\
                                                             **kwargs)
 
-
-
-
-if __name__ == '__main__':
-    import lsq_testproblem as cp
-    lsqp = cp.lsq_testproblem(2,3,4)
-    lsqObj = RegLSQPInteriorPointSolver(lsqp)
-    lsqObj = RegLSQPInteriorPointSolver5x5(lsqp)
 
 

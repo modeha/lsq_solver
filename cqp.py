@@ -8,7 +8,6 @@
 # D. Orban, Montreal 2009-2011.
 
 from slack_nlp import SlackFrameworkNLP as SlackFramework
-from slack_nlp import FormEntireMatrix
 try:                            # To solve augmented systems
     from nlpy.linalg.pyma57 import PyMa57Context as LBLContext
 except:
@@ -20,8 +19,6 @@ from nlpy.tools.timing import cputime
 from nlpy.tools.norms import normest
 
 from pykrylov.linop import *
-from lsq_testproblem import *
-#from nlpy.krylov import SimpleLinearOperator, ReducedLinearOperator, SymmetricallyReducedLinearOperator
 from pysparse.sparse import spmatrix
 from pysparse.sparse.pysparseMatrix import PysparseMatrix
 import numpy as np
@@ -30,8 +27,6 @@ import sys, logging
 from numpy.linalg import norm
 
 import pdb
-from lsq_testproblem import *
-
 class RegQPInteriorPointSolver(object):
 
     def __init__(self, qp, **kwargs):

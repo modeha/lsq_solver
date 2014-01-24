@@ -333,30 +333,3 @@ class SlackFrameworkNLP( NLPModel ):
         return SimpleLinearOperator(self.n, self.n, symmetric=True,
                          matvec=lambda u: self.hprod(x,z,u,**kwargs))
 
-def FormEntireMatrix(on,om,Jop):
-    J = np.zeros([om,on])
-    for i in range(0,on):
-        v = np.zeros(on)
-        v[i] = 1.
-        J[:,i] = Jop * v
-    return J
-
-if __name__ == '__main__':
-    from lsqmodel import LSQModel
-    #from lsq import lsq
-    #from mfnlp import *
-    from Others.lsq_testproblem import *
-    import numpy as np
-    lsqpr  =  exampleliop()
-    
-    slack = SlackFrameworkNLP( lsqpr ) 
-    j = slack.jac(slack.x0)
-    A = slack.A()
-    print as_llmat(FormEntireMatrix(j.shape[1],j.shape[0],j))
-    print as_llmat(FormEntireMatrix(A.shape[1],A.shape[0],A))
-    #print p.shape
-    #print as_llmat(FormEntireMatrix(p.shape[1],p.shape[0],p))
-    #print slack.InitializeSlacks()
-    #print slack.display_basic_info()
-    #print ls2.display_basic_info()
-

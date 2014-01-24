@@ -4,7 +4,6 @@
 #
 # M.Dehghani, Montreal  2012.
 
-from Others.toolslsq import *
 from pykrylov.linop import *
 from nlpy.krylov import SimpleLinearOperator, ReducedLinearOperator, SymmetricallyReducedLinearOperator
 from nlpy.model.nlp import NLPModel
@@ -198,88 +197,3 @@ class LSQRModel(LSQModel):
     def hess(self, x, z, **kwargs):
         return SimpleLinearOperator(self.nx+self.nr, self.nx+self.nr, symmetric=True,
                          matvec=lambda u: self.hprod(x,z,u,**kwargs))
-
-def FormEntireMatrix(on,om,Jop):
-    J = np.zeros([on,om])
-    for j in range(0,om):
-        v = np.zeros(om)
-        v[j] = 1.
-        J[:,j] = Jop * v
-    return J
-
-if __name__ == '__main__':
-    from slack_nlp import SlackFrameworkNLP
-    from lsq_testproblem import *
-    from Others.toolslsq import as_llmat
-    #lsqpr = exampleliop()
-    ls = l1_ls_class_tp(2,3)
-    #print ls.c.size
-    #print ls.obj(range(12))
-    
-
-
-    #A = LinearOperator(nargin=3, nargout=3,matvec=lambda v: 2*v, symmetric=True)
-    
-    #B = LinearOperator(nargin=4, nargout=3, matvec=lambda v: v[:3],
-                    #matvec_transp=lambda v: np.concatenate((v,np.zeros(1))))
-    
-    #C = LinearOperator(nargin=2, nargout=3, matvec=lambda v: np.concatenate((v,np.zeros(1))),
-                    #matvec_transp=lambda v: v[:2])
-    
-    #D = LinearOperator(nargin=2, nargout=4, matvec=lambda v: np.concatenate((v,np.zeros(2))),
-                    #matvec_transp=lambda v: v[:2])
-    
-    #E = LinearOperator(nargin=4, nargout=4, matvec=lambda v: -v, symmetric=True)
-    #F = LinearOperator(nargin=2, nargout=2, matvec=lambda v: -v, symmetric=True)
-    #print FormEntireMatrix(3,4,B)
-    ## Build [A  B  C]
-    ##       [B' E  D].
-    ##       [C' D' F]
-    #print A.symmetric,E.symmetric,F.symmetric
-    #print A.shape,B.shape,C.shape
-    #print B.T.shape,E.shape,D.shape
-    #print C.T.shape,D.T.shape,F.shape
-    #K4 = BlockLinearOperator([[A, B,C], [E,D],[F]], symmetric=True)
-    ##print FormEntireMatrix(3,2,C)
-    #W = K4*2
-    #print FormEntireMatrix(9,9,W)
-    ##[[A,B,C], [D,E], [F]]
- 
-    
-    remove_type_file()
-    #path_ = '/Users/Mohsen/Documents/nlpy_mohsen/lsq/test_problems_pkl/'
-    #remove_type_file(type='.npz', path=path_)
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    #def jac(self, xr):
-        
-        #SimpleLinearOperator()
-        
-        #"""
-        #[Q   I]
-        #[B   0]
-        #"""
-        ## 
-        #nx, nr, mx = self.nx, self.nr, self.mx
-        #Q = self.Q
-        #B = self.B
-        #Zero = LinearOperator(nargin=nr, nargout=mx,
-                       #matvec=lambda v: 0*v, symmetric=True)
-        #I =  IdentityOperator(nr)#PysparseLinearOperator(eye(nr))
-        ## Build [Q  I]
-        ##       [B  0]
-        #J = BlockLinearOperator([[Q, I], [B, Zero]])
-        #return J

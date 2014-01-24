@@ -6,7 +6,7 @@ from scipy.sparse import spdiags
 from pykrylov.linop import LinearOperator
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
 
-from toolslsq import as_llmat
+#from toolslsq import as_llmat
 
 
 def arrayexp(n):
@@ -121,8 +121,8 @@ def dctt(a):
     discrete cosine transform coefficients.
     """
     if len(a.shape)==1:
-        return dctt1(dctt1(a).T)[:,0]
-    return dctt1(dctt1(a).T).T
+        return (dctt1(a))[0,:]
+    return dctt1(a)
 
 def idctt(a):
     """ dctt 2-D discrete cosine transform.
@@ -130,8 +130,12 @@ def idctt(a):
     The matrix B is the same size as A and contains the
     discrete cosine transform coefficients.
     """
-    #idctt1(idctt1(a).T).T
-    return idctt1(idctt1(a).T)[:,0]
+    if len(a.shape)==1:
+        return (idctt1(a))[0,:]
+    return idctt1(a)
+##
+##    #idctt1(idctt1(a).T).T
+##    return idctt1(idctt1(a).T)[:,0]
 
 def test (m=128,n=1024):
     "n is signal dimension and m is number of measurements"
@@ -175,6 +179,7 @@ def l1_ls_itre(n = 10, m = 4):
     #m = 128  number of measurements
     z = np.zeros([n,1])
     J = np.random.permutation(range(n)) # m randomly chosen indices
+    J = np.array(range(n))
     
     # generate the m*n partial DCT matrix whose m rows are
     # the rows of the n*n DCT matrix at the indices specified by J
@@ -212,10 +217,42 @@ if __name__ == "__main__":
     m=3;n=4
     A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dctt1(v),
                        matvec_transp=lambda v: idctt(z_v(n,J,v)))
+    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dctt(v),
+                       matvec_transp=lambda v: idctt(z_v(n,J,v)))
+
     #print A
 
     print idctt(X)
-    print dctt1(X)
+    print dctt(X)
+##    
+##    >> dct(A)
+##
+##ans =
+##
+##    1.0773    1.5400    0.7061
+##    0.1023    0.0233   -0.2016
+##   -0.5146    0.1233    0.2532
+##   -0.2273   -0.1241   -0.2011
+##
+##>> idct(A)
+##
+##ans =
+##
+##    1.1630    1.4670    0.5999
+##   -0.0838   -0.2438   -0.2809
+##   -0.2493    0.4361    0.4249
+##   -0.2565   -0.0327   -0.1567
+##
+##>> A
+##
+##A =
+##
+##    0.2867    0.8133    0.2936
+##    0.9721    0.7958    0.3033
+##    0.6198    0.6210    0.1496
+##    0.2760    0.8500    0.6658
+##
+##>> 
       
 ##    A,y = l1_ls_itre(m = 3, n = 4)
 ##    a=A*np.ones([A.shape[1],1])
