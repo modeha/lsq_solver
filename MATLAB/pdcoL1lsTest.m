@@ -6,10 +6,10 @@
   n = 350;
   Q = rand(m,n);
   y = rand(m,1);
-  pdcotestBPDN()
+  %pdcotestBPDN()
   %PDCOTest( m,n );
 %  [x,IterN,realTol,objtrue,time]=pdcorandom(dct(Q),y);
- %partialdct(m,n)
+ partialdct(m,n)
  %printResults()
  end
 function partialdct(m,n)
@@ -40,11 +40,11 @@ for i=1:1
  rel_tol = 1e-4; % relative target duality gap
 
 %run the l1-regularized least squares solver
-tic;
-[iter,primobj,gap,x] = l1_ls(A,y,lambda_max,rel_tol);
-time = toc;
-type = 'l1ls';
-dictInfo(x,y,iter,gap,primobj,time,Name,type);
+% tic;
+% [iter,primobj,gap,x] = l1_ls(A,y,lambda_max,rel_tol);
+% time = toc;
+% type = 'l1ls';
+% dictInfo(x,y,iter,gap,primobj,time,Name,type);
 
   options = pdcoSet;
 
