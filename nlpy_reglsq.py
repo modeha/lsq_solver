@@ -1,4 +1,4 @@
-from lsq_testproblem import l1_ls_class_tp,remove_type_file
+from lsq_testproblem import l1_ls_class_tp,remove_type_file,exampleliop,nnz_elements
 from lsqmodel import LSQModel, LSQRModel
 from nlpy import __version__
 from slack_nlp import SlackFrameworkNLP as SlackFramework
@@ -52,6 +52,12 @@ parser.add_option("-n", "--n_dim", action="store", type="int", default=None,
 parser.add_option("-m", "--m_dim", action="store", type="int", default=None,
         dest="m_dim", help="Specify relative stopping tolerance")
 
+parser.add_option("-I", "--iterSolver", action="store",
+        dest="iterSolve", default=None, help="Use 4x4 block linear system")
+
+
+parser.add_option("-r", "--delta_size", action="store", type="float", default=None,
+        dest="delta_size", help="Specify relative stopping tolerance")
 
 
 parser.add_option("-p", "--regpr", action="store", type="float", default=None,
@@ -92,6 +98,13 @@ if options.m_dim is not None:
 if options.n_dim is not None:
     n = options.n_dim
 
+if options.iterSolve is not None:
+    opts_init['iterSolve'] = options.iterSolve
+    log.info('Solver %10s'%options.iterSolve)
+    
+
+if options.delta_size is not None:
+    delta = options.delta_size
 # Set printing standards for arrays.
 numpy.set_printoptions(precision=3, linewidth=70, threshold=10, edgeitems=2)
 
@@ -103,7 +116,7 @@ multiple_problems = len(args) > 1
 args = ['example']    
 for probname in args:
     t_setup = cputime()
-    lsqp = l1_ls_class_tp(n,m)#340,350)#3400,3500#npz_to_lsqobj(probname[:-4],Model=LSQModel)
+    lsqp = l1_ls_class_tp(n,m,delta)#exampleliop(n,m)##340,350)#3400,3500#npz_to_lsqobj(probname[:-4],Model=LSQModel)
 	
     t_setup = cputime() - t_setup
 
@@ -131,7 +144,20 @@ for probname in args:
 log.info('-'*len(hdr))
 
 if not multiple_problems:
+##    _folder = str(os.getcwd()) + '/binary/'
+##    x0 = numpy.load(_folder+str(m)+'_'+str(n)+'.npz')
+##    x0 = x0[x0.files[0]]
+##    nnz0 = nnz_elements(x0,1e-3)
+##    log.info('Non zero elements in original signal %6.f'%nnz0)
+
+    nnz = nnz_elements(regqp.x,1e-3)
+    #numpy.set_printoptions(threshold='nan')
+    #print regqp.x
+    numpy.set_printoptions(threshold=5)
     log.info('Problem name %10s'%probname[:-6])
+    log.info('Non zero elements in minimizer %6.f'%nnz)
+    #log.info('Defferent between the original and minimizer %6.6f'%norm2(x.T-x0))
+    
     log.info('Final x: %s, |x| = %7.1e' % (repr(regqp.x),norm2(regqp.x)))
     log.info('Final y: %s, |y| = %7.1e' % (repr(regqp.y),norm2(regqp.y)))
     log.info('Final z: %s, |z| = %7.1e' % (repr(regqp.z),norm2(regqp.z)))

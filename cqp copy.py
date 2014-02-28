@@ -1790,21 +1790,15 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
 
         from pysparse.sparse.pysparseMatrix import PysparseMatrix,\
              PysparseIdentityMatrix, PysparseSpDiagsMatrix
-        from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
         import time
-        from toolslsq import as_llmat
         from numpy import ones
 
         A,B,C = self.pykrylov()
         m,n = B.shape 
         p, q = A.shape
-        e = -ones(p)
-        # I = DiagonalOperator(-e)
-        
-        # A = A*I
-        # H = A*I
+        e = ones(p)
 
-        M = DiagonalOperator(1/(A*e))
+        M = DiagonalOperator(1/(-A*e))
         mc,nc = C.shape
         ec = ones(mc)
         N = DiagonalOperator(1/(C*ec))
@@ -1821,7 +1815,8 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         lsqr = eval(self.iter_solver+'(B)')
 
         t0 = cputime()
-        lsqr.solve(b,atol = 1e-6, btol = 1e-6,M = N, N = M)
+        print 30*"*LSMR"
+        lsqr.solve(b,atol = 1e-6, btol = 1e-6,M = N, N = M,show = True)
         #print cputime() - t0
         xsol = x_0 + lsqr.x
         w = b - B * lsqr.x
@@ -1831,6 +1826,10 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         nr = lsqr.r2norm
 
         neig = 0
+        # print 30*"*LSQR"
+        # lsqr = LSQRFramework(B)
+        # lsqr.solve(b,atol = 1e-6, btol = 1e-6,M = N, N = M,show = True,\
+        #          store_resids = True)
 
         return sol_final, nr, neig
 

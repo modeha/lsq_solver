@@ -7,7 +7,7 @@ from pysparse.sparse.pysparseMatrix import PysparseMatrix
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
 from pysparse.sparse import PysparseIdentityMatrix as eye
 
-#from Others.toolslsq import as_llmat, contiguous_array
+from toolslsq import as_llmat, contiguous_array
 from pykrylov.tools import check_symmetric
 from pykrylov.linop import *
 import sys
@@ -246,10 +246,9 @@ def linearoperator():
     I = LinearOperator(nargin=4, nargout=4,
                        matvec=lambda v: v, symmetric=True)
     
-def exampleliop():
-        
-##    Q,B,d,c,lcon,ucon,lvar,uvar,name = first_class_tp(3,2,2)#(2,2,3 )
-    Q,B,d,c,lcon,ucon,lvar,uvar,name = fifth_class_tp(499,599)
+def exampleliop(n,m):
+    #    Q,B,d,c,lcon,ucon,lvar,uvar,name = first_class_tp(3,2,2)#(2,2,3 )
+    Q,B,d,c,lcon,ucon,lvar,uvar,name = fifth_class_tp(n,m)
     
     Q = sp(matrix=as_llmat(Q))
     B = sp(matrix=as_llmat(B))
@@ -273,12 +272,15 @@ def print_matrix(operator_object):
     m,n = operator_object.shape
     print as_llmat(operator_object.to_array())
     return
-def l1_ls_class_tp(p=0,n=0):
+def l1_ls_class_tp(p=0,n=0,delta = 1.0e-05):
     Q,y = l1_ls_itre(p,n)
-    d = y[:,0]
+    y = sprandvec(p,30)
+    d = Q*y
+    d = np.array(d)[:,0]
+    print "Number of non zero in original",sum(y)
+
     
     c = np.zeros(n)
-    delta = 0.001
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
@@ -296,13 +298,43 @@ def l1_ls_class_tp(p=0,n=0):
     m, n = B.shape
     name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
     lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
-                    Uvar=uvar, name='test')
+                    Uvar=uvar, name=name)
     return lsqpr
 
+def nnz_elements(regqp,tol=1e-4):
+##    n = x0.shape[0]
+    print "non zero % with Tol  :",tol
+##    xmax0 = tol*numpy.linalg.norm(x0,numpy.inf)
+##    nnz0 = len(x0[abs(x0)>=xmax0])*1.0/len(x0)*100.
+    x = regqp
+    n = x.shape[0]
+    xmax = tol*numpy.linalg.norm(x,numpy.inf)  
+    nnz = len(x[abs(x)>= xmax])*1.0/len(x)*100
+    print "Non zero elements are: ",nnz,"%"
+    return nnz
+
+def sprandvec(m,n):
+    """
+    Must be m>=n
+    """
+    i, d = divmod(m*(n/100.), 1)
+    print n,"% of the original vector with dimention ",m,"is",i
+    n_ = int(i)
+    v = np.zeros([1,m])
+    r = np.random.permutation(range(m))
+    r = r[:n_]
+    for i in range(n_):
+	v[0,r[i]] = 1 
+    _folder = str(os.getcwd()) + '/binary/'
+    if not os.path.isdir(_folder):
+                os.makedirs(_folder)
+    np.savez(_folder+str(n)+'_'+str(m), v.T)
+    nnz_elements(v.T,tol=1e-4)
+    return v.T
 if __name__ == "__main__":
     from pykrylov.linop import LinearOperator
     import logging
     import sys
     from numpy.linalg import norm
-    ls = l1_ls_class_tp(4,5)
+    ls = l1_ls_class_tp(3,6)
     remove_type_file()

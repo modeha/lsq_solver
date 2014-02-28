@@ -5,7 +5,6 @@ from cmath import exp
 from scipy.sparse import spdiags
 from pykrylov.linop import LinearOperator
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
-from toolslsq import as_llmat
 
 #from toolslsq import as_llmat
 
@@ -138,7 +137,7 @@ def idctt(a):
 ##    #idctt1(idctt1(a).T).T
 ##    return idctt1(idctt1(a).T)[:,0]
 
-def test (m=128,n=1024,delta = 0.01):
+def test (m=128,n=1024):
     "n is signal dimension and m is number of measurements"
 
     # spiky signal generation
@@ -148,9 +147,8 @@ def test (m=128,n=1024,delta = 0.01):
     x0[q[0:T]]= np.sign(np.random.rand(T,1))
     #x0[J[0:T]] = np.sign(np.reshape(np.arange(1,T+1),(T,1)))
     # noisy observations
-    A = np.random.rand(m,n)
-    A= sp(matrix=as_llmat(A))
-      # noise standard deviation
+    A = dctt(np.random.rand(m,n))
+    sigma = 0.01  # noise standard deviation
     y = np.dot(A,x0) #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
     return A,y
 
@@ -205,17 +203,7 @@ def l1_ls_itre(n = 10, m = 4):
     sigma = 0.01  # noise standard deviation
     y = x0  #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
     return A,y
-    def sprandvec(m,n):
-	"""
-	Must be m>=n
-    """
-	v = np.zeros([1,m])
-	r = np.random.permutation(range(m))
-	print r
-	r = r[:n]
-	for i in range(n):
-	    v[0,r[i]] = 1 
-	return v.T
+
 if __name__ == "__main__":
     from toolslsq import *
     from pykrylov.linop import LinearOperator
