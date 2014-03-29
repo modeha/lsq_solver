@@ -6,6 +6,9 @@ from scipy.sparse import spdiags
 from pykrylov.linop import LinearOperator
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
 from toolslsq import as_llmat
+from pykrylov.linop import *
+from lsqmodel import LSQModel, LSQRModel
+from lsq_testproblem import *
 
 #from toolslsq import as_llmat
 
@@ -138,35 +141,9 @@ def idctt(a):
 ##    #idctt1(idctt1(a).T).T
 ##    return idctt1(idctt1(a).T)[:,0]
 
-def test (m=128,n=1024,delta = 0.01):
-    "n is signal dimension and m is number of measurements"
-
-    # spiky signal generation
-    T = min(m,n)-1 # number of spikes
-    x0 = np.zeros([n,1]);
-    q = np.random.permutation(range(n)) #or s=list(range(5)) random.shuffle(s)
-    x0[q[0:T]]= np.sign(np.random.rand(T,1))
-    #x0[J[0:T]] = np.sign(np.reshape(np.arange(1,T+1),(T,1)))
-    # noisy observations
-    A = np.random.rand(m,n)
-    A= sp(matrix=as_llmat(A))
-      # noise standard deviation
-    y = np.dot(A,x0) #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
-    return A,y
-
 def sign(x): 
     return 1 if x >= 0 else -1
 
-def prob001():
-    ""
-    n = 1024
-    t= np.array(range(1,n+1))/4.
-    t = arange(1,n+1)
-    signalSine = 4*sin(4*pi*t)
-    signalJump = sign(t-0.3) - sign(.72-t)
-    invHeaviside = spdiags(column_stack((-sqrt(range(n-1,-1,-1)),\
-                                          sqrt(range(n,0,-1)))),[-1,0,1],n,n)
-    return 
 
 def z_v(n,J,v):
     z = np.zeros([n,1])
@@ -175,7 +152,7 @@ def z_v(n,J,v):
     z[J] = v[J]
     return z[:,0]
 
-def l1_ls_itre(n = 10, m = 4):
+def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
     "n is signal dimension and m is number of measurements"
     #n = 1024  signal dimension
     #m = 128  number of measurements
@@ -204,18 +181,40 @@ def l1_ls_itre(n = 10, m = 4):
     # noisy observations
     sigma = 0.01  # noise standard deviation
     y = x0  #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
-    return A,y
-    def sprandvec(m,n):
-	"""
-	Must be m>=n
-    """
-	v = np.zeros([1,m])
-	r = np.random.permutation(range(m))
-	print r
-	r = r[:n]
-	for i in range(n):
-	    v[0,r[i]] = 1 
-	return v.T
+
+    Q = A
+    #d = y[:,0]; 
+    p = n; n = m
+
+    #Q = np.tril(np.ones((p, n), dtype=int), 0)+p*n*np.eye(p,n)
+    y = sprandvec(p,30)
+    d = Q*y
+    d = np.array(d)[:,0]
+    print "Number of non zero in original",sum(y)
+    #numpy.set_printoptions(threshold='nan')
+    #print y
+    
+    c = np.zeros(n)
+    c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
+    ucon = np.zeros(2*n)
+    lcon = -np.ones(2*n)*inf
+    uvar = np.ones(2*n)*inf
+    lvar = -np.ones(2*n)*inf
+
+    I = IdentityOperator(n, symmetric=True)
+    # Build [ I  -I]
+    #       [-I  -I]
+    B = BlockLinearOperator([[I, -I], [-I]], symmetric=True)
+
+    Q_ = ZeroOperator(n,p)
+    new_Q = BlockLinearOperator([[Q,Q_]])
+    p, n = new_Q.shape
+    m, n = B.shape
+    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
+    lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
+                    Uvar=uvar, name=name)
+    return lsqpr
+
 if __name__ == "__main__":
     from toolslsq import *
     from pykrylov.linop import LinearOperator

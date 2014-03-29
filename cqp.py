@@ -1128,7 +1128,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         self.lsq = lsq
         self.qp = lsq
-        self.tolerance = 1.0e-4
+        self.tolerance = 1.0e-6
 
         # The Jacobian has the form
         #
@@ -1335,7 +1335,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
             QTr = Q.T*r
             dFeas = A.T*y
             dFeas[:nx] += -self.c + QTr  # dFeas1 = - c + Q'r + A1'y
-            dFeas[nx:] += z              # dFeas2 = A2'y + z
+            dFeas[nx:] += z 
 
             # Compute duality measure.
             if ns > 0:
@@ -1344,6 +1344,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
                 mu = 0.0
 
             # Compute residual norms and scaled residual norms.
+
             #pResid = norm2(pFeas)
             pResid = norm_infty(pFeas)
             spResid = pResid/(1+self.normdb+self.normJ)
@@ -1790,21 +1791,17 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
 
         from pysparse.sparse.pysparseMatrix import PysparseMatrix,\
              PysparseIdentityMatrix, PysparseSpDiagsMatrix
-        from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
         import time
-        from toolslsq import as_llmat
         from numpy import ones
+        import numpy
+        #numpy.set_printoptions(threshold='nan')
 
         A,B,C = self.pykrylov()
         m,n = B.shape 
         p, q = A.shape
-        e = -ones(p)
-        # I = DiagonalOperator(-e)
-        
-        # A = A*I
-        # H = A*I
+        e = ones(p)
 
-        M = DiagonalOperator(1/(A*e))
+        M = DiagonalOperator(1/(-A*e))
         mc,nc = C.shape
         ec = ones(mc)
         N = DiagonalOperator(1/(C*ec))
@@ -1818,21 +1815,26 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
 
         #lsqr = CRAIGFramework(B)
         #lsqr = LSMRFramework(B)
-        lsqr = eval(self.iter_solver+'(B)')
+        
 
-        t0 = cputime()
-        lsqr.solve(b,atol = 1e-6, btol = 1e-6,M = N, N = M)
-        #print cputime() - t0
-        xsol = x_0 + lsqr.x
-        w = b - B * lsqr.x
-        ysol = N(w)
+        # self.regpr_min = 1.0e-10
+        # self.regdu_min = 1.0e-10
+        preconditioner = True#False#
+        preconditioner = True#False
+        if preconditioner:
+            lsqr = eval(self.iter_solver+'(B)')
+            lsqr.solve(b, etol=1e-10, M = N, N = M,show=False)
+            xsol = x_0 + lsqr.x
+            w = b - B * lsqr.x
+            ysol = N(w)
+            sol_final = np.concatenate((xsol, ysol), axis=0)
+        else:
+            lsqr = eval(self.iter_solver+'(self.H)')
+            lsqr.solve(rhs,atol = 1e-8, btol = 1e-8)
+            sol_final=lsqr.x
     
-        sol_final = np.concatenate((xsol, ysol), axis=0)
-        nr = lsqr.r2norm
 
-        neig = 0
-
-        return sol_final, nr, neig
+        return sol_final, 0, 0
 
 
 if __name__ == "__main__":
