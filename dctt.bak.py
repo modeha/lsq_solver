@@ -10,14 +10,16 @@ from pykrylov.linop import *
 from lsqmodel import LSQModel, LSQRModel
 from lsq_testproblem import *
 
+#from toolslsq import as_llmat
+
 
 def arrayexp(n):
-    """Returns the elementwise antilog of the real array x.
-    We try to exponentiate with numpy.exp() and, if that fails,
-    with python's math.exp(). numpy.exp() is about 10 times faster 
-    but throws an OverflowError exception for numerical underflow 
-    (e.g. exp(-800), whereas python's math.exp() just returns zero,
-    which is much more helpful.
+    """Returns the elementwise antilog of the real array x.  We try to
+    exponentiate with numpy.exp() and, if that fails, with python's
+    math.exp().  numpy.exp() is about 10 times faster but throws an
+    OverflowError exception for numerical underflow (e.g. exp(-800),
+    whereas python's math.exp() just returns zero, which is much more
+    helpful.
     """
     x = range(n)
     ww = np.empty(len(x), complex)
@@ -27,12 +29,12 @@ def arrayexp(n):
     return np.array([ww],dtype=complex)
 
 def iarrayexp(n):
-    """Returns the elementwise antilog of the real array x.
-    We try to exponentiate with numpy.exp() and, if that fails,
-    with python's math.exp().  numpy.exp() is about 10 times faster
-    but throws an OverflowError exception for numerical underflow 
-    (e.g. exp(-800), whereas python's math.exp() just returns zero, 
-    which is much more helpful.
+    """Returns the elementwise antilog of the real array x.  We try to
+    exponentiate with numpy.exp() and, if that fails, with python's
+    math.exp().  numpy.exp() is about 10 times faster but throws an
+    OverflowError exception for numerical underflow (e.g. exp(-800),
+    whereas python's math.exp() just returns zero, which is much more
+    helpful.
     """
     x = range(n)
     ww = np.empty(len(x), complex)
@@ -40,9 +42,10 @@ def iarrayexp(n):
         ww[j] = sqrt(2*n)*exp(1j*x[j]*pi/(2*n))
     return np.array([ww],dtype=complex)
 
-def dct1(a):
-    """ dct1 1-D Discrete cosine transform.
-    y = dct1(a) returns the discrete cosine transform of a.
+
+def dctt1(a):
+    """ dct  Discrete cosine transform.
+    y = dct(a) returns the discrete cosine transform of a.
     The vector y is the same size as `a` and contains the
     discrete cosine transform coefficients.
     """
@@ -74,11 +77,13 @@ def dct1(a):
     
     return b[:n,:m].real
 
-def idct1(b):
-    """ idct1  1-D inverts the Discrete cosine transform.
+def idctt1(b):
+    """ idct  inverts the Discrete cosine transform.
     y = dct(a) returns the inverse discrete cosine transform of a.
     The vector y is the same size as a and contains the
     discrete cosine transform coefficients.
+    Also returning the original vector if y was obtained using y = DCT(a).
+ 
     """
     if len(b.shape)==1:
         b = b.reshape(b.shape[0],1)
@@ -113,28 +118,28 @@ def idct1(b):
         # Re-order the elements of the columns of x
     return a[:n,:m].real
 
-def dct(a):
-    """ dct 2-D discrete cosine transform.
-    B = dct(A) returns the discrete cosine transform of A.
+def dctt(a):
+    """ dctt 2-D discrete cosine transform.
+    B = dctt(A) returns the discrete cosine transform of A.
     The matrix B is the same size as A and contains the
     discrete cosine transform coefficients.
     """
     if len(a.shape)==1:
-        return (dct1(a))[0,:]
-    return dct1(a)
+        return (dctt1(a))[0,:]
+    return dctt1(a)
 
-def idct(a):
-    """ dct 2-D discrete cosine transform.
-    B = dct(A) returns the discrete cosine transform of A.
+def idctt(a):
+    """ dctt 2-D discrete cosine transform.
+    B = dctt(A) returns the discrete cosine transform of A.
     The matrix B is the same size as A and contains the
     discrete cosine transform coefficients.
     """
     if len(a.shape)==1:
-        return (idct1(a))[0,:]
-    return idct1(a)
+        return (idctt1(a))[0,:]
+    return idctt1(a)
 ##
-##    #idct1(idct1(a).T).T
-##    return idct1(idct1(a).T)[:,0]
+##    #idctt1(idctt1(a).T).T
+##    return idctt1(idctt1(a).T)[:,0]
 
 def sign(x): 
     return 1 if x >= 0 else -1
@@ -158,8 +163,8 @@ def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
     # generate the m*n partial DCT matrix whose m rows are
     # the rows of the n*n DCT matrix at the indices specified by J
 
-    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct(v),
-                       matvec_transp=lambda v: idct(z_v(n,J,v)))
+    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dctt(v),
+                       matvec_transp=lambda v: idctt(z_v(n,J,v)))
 
     # spiky signal generation
     T = min(m,n)-1 # number of spikes
@@ -172,10 +177,17 @@ def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
     y = x0  #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
 
     Q = A
+    #d = y[:,0]; 
     p = n; n = m
+
+    #Q = np.tril(np.ones((p, n), dtype=int), 0)+p*n*np.eye(p,n)
     y = sprandvec(p,30)
     d = Q*y
-    d = np.array(d)[:,0]    
+    d = np.array(d)[:,0]
+    print "Number of non zero in original",sum(y)
+    #numpy.set_printoptions(threshold='nan')
+    #print y
+    
     c = np.zeros(n)
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)
@@ -208,15 +220,15 @@ if __name__ == "__main__":
 ##    X = np.array([[1.,2.,3.,4.]])
 
     m=3;n=4
-    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct1(v),
-                       matvec_transp=lambda v: idct(z_v(n,J,v)))
-    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct(v),
-                       matvec_transp=lambda v: idct(z_v(n,J,v)))
+    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dctt1(v),
+                       matvec_transp=lambda v: idctt(z_v(n,J,v)))
+    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dctt(v),
+                       matvec_transp=lambda v: idctt(z_v(n,J,v)))
 
     #print A
 
-    print idct(X)
-    print dct(X)
+    print idctt(X)
+    print dctt(X)
 ##    
 ##    >> dct(A)
 ##
