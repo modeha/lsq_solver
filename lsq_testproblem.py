@@ -45,5 +45,6 @@ if __name__ == "__main__":
     from pykrylov.linop import LinearOperator
     import logging
     import sys
-    from np.linalg import norm
+    import numpy as np
+    from numpy.linalg import norm
     remove_type_file()

@@ -115,7 +115,7 @@ function options = pdcoSet(opts)
   options.LSMRMaxIter  =  10.0;
   options.LSMRatol1    = 1e-6;%1e-10;
   options.LSMRatol2    = 1e-6;  %1e-15; 
-  options.LSMRconlim   = 1e+12;  % Somewhere between e+8 and e+16
+  options.LSMRconlim   = 1e+8;  % Somewhere between e+8 and e+16
   options.wait         =     0;
   options.NOTE         = 'LSMRMaxIter is scaled by the matrix dimension';
 

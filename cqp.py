@@ -1489,7 +1489,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
                 comp -= sigma * mu
 
                 # Assemble rhs.
-                self.update_long_step_rhs(rhs, pFeas, dFeas, comp, s)
+                self.update_long_step_rhs(rhs, pFeas, dFeas, comp, z)
 
             # Solve augmented system.
             (step, nres, neig) = self.solveSystem(rhs)
@@ -1731,7 +1731,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         rhs[n+m:] = -comp / np.sqrt(z)
         return
 
-    def update_long_step_rhs(self, rhs, pFeas, dFeas, comp, s):
+    def update_long_step_rhs(self, rhs, pFeas, dFeas, comp, z):
         (n, nx, nr, ns, m) = self.get_dimensions()
         rhs[:nx+ns] = -dFeas[:nx+ns]
         rhs[nx+ns:n+m] = -pFeas
@@ -1823,7 +1823,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         preconditioner = True#False
         if preconditioner:
             lsqr = eval(self.iter_solver+'(B)')
-            lsqr.solve(b, etol=1e-10, M = N, N = M,show=False)
+            lsqr.solve(b, etol=1e-9, M = N, N = M,show=False)
             xsol = x_0 + lsqr.x
             w = b - B * lsqr.x
             ysol = N(w)
@@ -1832,8 +1832,6 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
             lsqr = eval(self.iter_solver+'(self.H)')
             lsqr.solve(rhs,atol = 1e-8, btol = 1e-8)
             sol_final=lsqr.x
-    
-
         return sol_final, 0, 0
 
 

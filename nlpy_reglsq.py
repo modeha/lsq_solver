@@ -1,4 +1,4 @@
-from dctt import partial_DCT
+from dctt import partial_DCT,DCT
 from lsq_testproblem import *
 from lsqmodel import LSQModel, LSQRModel
 from nlpy import __version__
@@ -108,7 +108,7 @@ multiple_problems = len(args) > 1
 args = ['example']    
 for probname in args:
     t_setup = cputime()
-    lsqp = partial_DCT(n,m,delta)
+    lsqp = DCT(n,m,delta)#partial_
 	
     t_setup = cputime() - t_setup
 

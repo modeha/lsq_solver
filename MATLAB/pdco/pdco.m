@@ -1,5 +1,5 @@
 function [x,IterN,realTol,objtrue,time] = ...
-    pdco(pdObj,pdMat,b,bl,bu,d1,d2,options,x0,y0,z0,xsize,zsize)
+    pdco1(pdObj,pdMat,b,bl,bu,d1,d2,options,x0,y0,z0,xsize,zsize,lsmr_solver)
 
 %-----------------------------------------------------------------------
 % pdco.m: Primal-Dual Barrier Method for Convex Objectives (28 Apr 2012)
@@ -250,7 +250,13 @@ function [x,IterN,realTol,objtrue,time] = ...
       if length(name) > 24, fprintf('\n   '), end
       fprintf('%s', 'partialDCT')
       fprintf('\nm        = %8g     n        = %8g', m,n)
-    
+      
+    elseif isa(pdMat,'opMatrix')
+        name = pdMat;
+      fprintf('\nThe matrix A is defined by an object: ')
+      if length(name) > 24, fprintf('\n   '), end
+      fprintf('%s', 'opMatrix')
+      fprintf('\nm        = %8g     n        = %8g', m,n)
   elseif isa(pdMat,'double')
       nnzA   = nnz(pdMat);
       if issparse(pdMat)
@@ -515,6 +521,8 @@ function [x,IterN,realTol,objtrue,time] = ...
   [r1,r2,rL,rU,Pinf,Dinf] = ...
       pdxxxresid1( pdMat,fix,low,upp, ...
                    b,bl,bu,d1,d2,grad,rL,rU,x,x1,x2,y,z1,z2 );
+               
+             
 
   %---------------------------------------------------------------------
   % Initialize mu and complementarity residuals:
@@ -621,7 +629,7 @@ function [x,IterN,realTol,objtrue,time] = ...
       w       = r2;
       w(low)  = w(low) - (cL(low) + z1(low).*rL(low))./x1(low);
       w(upp)  = w(upp) + (cU(upp) + z2(upp).*rU(upp))./x2(upp);
-
+      tmpH = H;
       H      = 1./H;    % H is now Hinv (NOTE!)
       H(fix) = 0;
       D      = sqrt(H);
@@ -694,10 +702,72 @@ function [x,IterN,realTol,objtrue,time] = ...
 
         mat_lsmr_handle = @(x,mode) ...
             pdxxxlsmrmat(mode, m, n, x,pdMat, Method, precon, pdDDD1, d2, pdDDD3);
+        
+        
+        if lsmr_solver==1 % use PDCO's lsmr to solve system
+            
+            [dy, istop_lsmr, itncg, ~, normAr, ~, ~, ~] ...
+                = lsmr(mat_lsmr_handle, rhs, damp, atol, btol, conlim);  % dont set localSize
+            
+               grad      =   pdxxxmat( pdMat,2,m,n,dy );  % grad = A'dy
+               grad(fix) =   0;    % Is this needed?      % grad is a work vector
+               dx        =   H.*(grad - w);
+               
+              
+               
+         
+        elseif lsmr_solver==2 % use lsmr_spot to solve system
+        opts.show = false;
+        opts.sqd  = true;  % Indicates that N acts as regularization.
+        opts.M = n;
+        opts.N = m;
 
-        [dy, istop_lsmr, itncg, normr, normAr, normA, condA, normx] ...
-            = lsmr(mat_lsmr_handle, rhs, damp, atol, btol, conlim,  ...
-                   itnlim, [], show);  % dont set localSize
+         rhs    = [ w; r1 ];
+         
+         A = -diag(H);
+         B = pdMat;
+         C = sparse(1:m, 1:m, d2.^2, m,m);
+                  
+         M = diag(-1./diag(A));
+         N = diag(1./diag(C));
+         f = rhs(1:n);
+         g =rhs(n+1:end);         
+         x_0 = -M*f;
+       
+         b_ = g-B*x_0;
+         opts.M = N;
+         opts.N = M;
+         opts.itnlim = min(m,n);
+%          opts.show = true;
+         [lsqr, flags, stats]   = lsmr_spot(B, b_,opts);  % dont set localSize
+              istop_lsmr = stats.istop;
+              normAr = stats.normAr;
+              itncg = flags.niters;
+              %dx = x_0 + lsqr;
+              w_b = b_ - B * lsqr;
+              ysol = N*w_b;
+              dy = ysol;
+              dx = dx_(B,dy,H,w,fix);
+        else
+        opts.show = false;
+        opts.sqd  = true;  % Indicates that N acts as regularization.
+        opts.M = n;
+        opts.N = m;
+         rhs_    = [ w; r1 ];
+         A = -diag(H);
+         B = pdMat;
+         C = sparse(1:m, 1:m, d2.^2, m,m);
+         K = [A B';B C];
+         [lsqr, flags, stats]   = lsmr_spot(K,rhs_,opts);  % dont set localSize
+              istop_lsmr = stats.istop;
+              normAr = stats.normAr;
+              itncg = flags.niters;
+              dy =lsqr(n+1:end);
+              %dx =lsqr(1:n); 
+              dx = dx_(B,dy,H,w,fix);
+                  
+            
+        end
 
         %[ dy, istop, itncg, dr1norm, dr2norm, danorm, dacond, ...
         %  darnorm, dxnorm, dvar, dcov, outfo ] = ...
@@ -753,9 +823,9 @@ function [x,IterN,realTol,objtrue,time] = ...
 
       % dy is now known.  Get dx, dx1, dx2, dz1, dz2.
 
-      grad      =   pdxxxmat( pdMat,2,m,n,dy );  % grad = A'dy
-      grad(fix) =   0;    % Is this needed?      % grad is a work vector
-      dx        =   H.*(grad - w);
+%       grad      =   pdxxxmat( pdMat,2,m,n,dy );  % grad = A'dy
+%       grad(fix) =   0;    % Is this needed?      % grad is a work vector
+%       dx        =   H.*(grad - w);
       dx1(low)  = - rL(low) + dx(low);
       dx2(upp)  = - rU(upp) - dx(upp);
       dz1(low)  =  (cL(low) - z1(low).*dx1(low)) ./ x1(low);
@@ -771,71 +841,6 @@ function [x,IterN,realTol,objtrue,time] = ...
          end
       end
     end % if Method<=4
-
-
-    if Method==21
-      % ---------------------------------------------------------
-      % Use SQD method to get dy and dx 
-      % ---------------------------------------------------------
-      H      = H + sparse(low,low, z1(low)./x1(low), n, n); 
-      H      = H + sparse(upp,upp, z2(upp)./x2(upp), n, n); 
-      w      = r2; 
-      w(low) = w(low) - (cL(low) + z1(low).*rL(low))./x1(low);
-      w(upp) = w(upp) + (cU(upp) + z2(upp).*rU(upp))./x2(upp);
-
-      % Get rid of rows and columns of H corresponding to fixed
-      % variables 
-      
-      if nfix > 0 
-          [ih,jh,vh] = find(H); 
-          clear H 
-          for k=fix'
-              vh(ih==k & ih~=jh) = 0;
-              vh(jh==k & ih~=jh) = 0;
-          end 
-          H = sparse(ih,jh,vh); 
-      end 
-           
-      if nfix==0
-          K = [ -H     pdMat'
-                pdMat  sparse(1:m, 1:m, d2.^2, m,m)];
-      else
-          if PDitns==1 
-            Afree = pdMat;
-            Afree(:,fix) = 0;
-          end 
-          K = [ -H     Afree'
-                Afree  sparse(1:m, 1:m, d2.^2, m,m)];
-      end
-
-      if PDitns==1
-          Psqd = symamd(K); 
-      end % Do ordering only once.
-        
-      rhs = [w; r1]; 
-      rhs(fix) = 0; 
-
-      % Use Matlab's old sparse LU (Gilbert and Peierls) on K. 
-      % Note that K is symmetric quasi-definite (SQD).
-      % If delta isn't too small, we can suppress row permutations
-      % and still have a sufficiently stable method.
-      
-      thresh = eps; % eps ~= 2e-16 suppresses partial pivoting
-      [L,U,perm] = lu(K(Psqd,Psqd),thresh,'vector'); 
-      % We trust this gives perm=1:n
-      if any(perm~=1:size(K,1))
-        error('[L,U,perm] returned non-identity permutation perm');
-      end 
-      sqdsoln = U\(L\rhs(Psqd));
-      sqdsoln(Psqd) = sqdsoln;
-      
-      dx  = sqdsoln(1:n);
-      dy  = sqdsoln(n+1:n+m); 
-      dx1(low)  = - rL(low) + dx(low);
-      dx2(upp)  = - rU(upp) - dx(upp);
-      dz1(low)  =  (cL(low) - z1(low).*dx1(low)) ./ x1(low);
-      dz2(upp)  =  (cU(upp) - z2(upp).*dx2(upp)) ./ x2(upp);
-    end % if Method==21
 
 
     %-------------------------------------------------------------------
@@ -904,7 +909,7 @@ function [x,IterN,realTol,objtrue,time] = ...
                   pdxxxresid2( mu,low,upp,cL,cU,x1,x2,z1,z2 );
       fmeritnew = pdxxxmerit( low,upp,r1,r2,rL,rU,cL,cU );
       step      = min( stepx, stepz );
-
+      
       if fmeritnew <= (1 - eta*step)*fmerit
          fail = false;
          break;
@@ -1081,12 +1086,12 @@ function [x,IterN,realTol,objtrue,time] = ...
   z(low) = z1(low);
   z(upp) = z(upp) - z2(upp);
 
-  if PriLev > 0
-    fprintf('\n\nmax |x| =%10.3f', norm(x,inf))
-    fprintf('    max |y| =%10.3f', norm(y,inf))
-    fprintf('    max |z| =%10.3f', norm(z,inf))  % excludes z(fix)
-    fprintf('   scaled')
-  end
+%   if PriLev > 0
+%     fprintf('\n\nmax |x| =%10.3f', norm(x,inf))
+%     fprintf('    max |y| =%10.3f', norm(y,inf))
+%     fprintf('    max |z| =%10.3f', norm(z,inf))  % excludes z(fix)
+%     fprintf('   scaled')
+%   end
 
   bl(fix) = bl(fix)*beta;      % Unscale bl, bu, x, y, z.
   bu(fix) = bu(fix)*beta;
@@ -1094,13 +1099,13 @@ function [x,IterN,realTol,objtrue,time] = ...
   bu(upp) = bu(upp)*beta;
 
   x = x*beta;   y = y*zeta;   z = z*zeta;
-
-  if PriLev > 0
-    fprintf(  '\nmax |x| =%10.3f', norm(x,inf))
-    fprintf('    max |y| =%10.3f', norm(y,inf))
-    fprintf('    max |z| =%10.3f', norm(z,inf))  % excludes z(fix)
-    fprintf(' unscaled')
-  end
+% 
+%   if PriLev > 0
+%     fprintf(  '\nmax |x| =%10.3f', norm(x,inf))
+%     fprintf('    max |y| =%10.3f', norm(y,inf))
+%     fprintf('    max |z| =%10.3f', norm(z,inf))  % excludes z(fix)
+%     fprintf(' unscaled')
+%   end
 
   % Reconstruct x(fix) and z(fix).
   r2 = pdxxxmat( pdMat,2,m,n,y );  % A'y
@@ -1141,13 +1146,14 @@ function [x,IterN,realTol,objtrue,time] = ...
   if PriLev > 0
     fprintf('\nPDitns  =%10g %sitns =%10g    time    =%10.1f', ...
                PDitns,solver,CGitns,time);
-    pdxxxdistrib( abs(x),abs(z) );   % Private function
+    %pdxxxdistrib( abs(x),abs(z) );   % Private function
     toc
-    realTol = max([Pinf,Dinf,Cinf,atol]);
+    realTol = max([Pinf,Dinf,Cinf,atol])
     if wait
       keyboard
     end
   end
+  
 %-----------------------------------------------------------------------
 % End function pdco.m
 %-----------------------------------------------------------------------
@@ -1363,6 +1369,8 @@ function [r1,r2,rL,rU,Pinf,Dinf] =    ...
   r2      = pdxxxmat( pdMat, 2, m, n, y );
 
   r1      = b    - r1 - (d2.^2).*y;
+
+
   r2      = grad - r2;  % + (z2-z1);        % grad includes (d1.^2)*x
   r2(fix) = 0;
   r2(upp) = r2(upp) + z2(upp);
@@ -1424,6 +1432,12 @@ function step = pdxxxstep( x,dx )
     steps  = x(blocking) ./ (- dx(blocking));
     step   = min( steps );
   end
+  
+function dx = dx_(B,dy,H,w,fix)
+ grad      =  B'*dy;  % grad = A'dy
+ grad(fix) =   0; 
+ dx        =   H.*(grad - w);
+               
 %-----------------------------------------------------------------------
 % End private function pdxxxstep
 %-----------------------------------------------------------------------
@@ -1478,3 +1492,5 @@ function step = pdxxxstep( x,dx )
 %%-----------------------------------------------------------------------
 %% End private function pdxxxstop
 %%-----------------------------------------------------------------------
+
+

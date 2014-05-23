@@ -1,14 +1,14 @@
 import numpy as np
 from numpy import *
 from math import sqrt, cos, pi
-from cmath import exp
+#from cmath import exp  
 from scipy.sparse import spdiags
 from pykrylov.linop import LinearOperator
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
-from toolslsq import as_llmat
+
 from pykrylov.linop import *
 from lsqmodel import LSQModel, LSQRModel
-from lsq_testproblem import *
+
 
 
 def arrayexp(n):
@@ -197,26 +197,99 @@ def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
                     Uvar=uvar, name=name)
     return lsqpr
 
+def DCT(n = 10, m = 4, delta = 1.0e-05):
+    from toolslsq import as_llmat
+    "n is signal dimension and m is number of measurements"
+    #n  signal dimension
+    #m  number of measurements
+    z = np.zeros([n,1])
+    J = np.random.permutation(range(n)) # m randomly chosen indices
+    J = np.array(range(n))
+    
+    # generate the m*n partial DCT matrix whose m rows are
+    # the rows of the n*n DCT matrix at the indices specified by J
+
+    Q = sp(matrix=as_llmat(np.random.rand(n,m)))
+    Q = PysparseLinearOperator(Q)
+
+    # spiky signal generation
+    T = min(m,n)-1 # number of spikes
+    x0 = np.zeros([n,1]);
+    q = np.random.permutation(range(n)) #or s=list(range(5)) random.shuffle(s)
+    x0[q[0:T]]= np.sign(np.random.rand(T,1))
+    #x0[J[0:T]] = np.sign(np.reshape(np.arange(1,T+1),(T,1)))
+    # noisy observations
+    sigma = 0.01  # noise standard deviation
+    y = x0  #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
+
+    p = n; n = m
+    y = sprandvec(n,30)
+    d = Q*y[:,0]
+    d = np.array(d) 
+    c = np.zeros(n)
+    c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
+    ucon = np.zeros(2*n)
+    lcon = -np.ones(2*n)*inf
+    uvar = np.ones(2*n)*inf
+    lvar = -np.ones(2*n)*inf
+
+    I = IdentityOperator(n, symmetric=True)
+    # Build [ I  -I]
+    #       [-I  -I]
+    B = BlockLinearOperator([[I, -I], [-I]], symmetric=True)
+
+    Q_ = ZeroOperator(n,p)
+    new_Q = BlockLinearOperator([[Q,Q_]])
+    p, n = new_Q.shape
+    m, n = B.shape
+    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
+    lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
+                    Uvar=uvar, name=name)
+    return lsqpr
+
+
+def sprandvec(m,n):
+    """
+    Must be m>=n
+    """
+    i, d = divmod(m*(n/100.), 1)
+    print n,"% of the original vector with dimention ",m,"is",i
+    n_ = int(i)
+    v = np.zeros([1,m])
+    r = np.random.permutation(range(m))
+    r = r[:n_]
+    for i in range(n_):
+        v[0,r[i]] = 1 
+    # _folder = str(os.getcwd()) + '/binary/'
+    # if not os.path.isdir(_folder):
+    #             os.makedirs(_folder)
+    # np.savez(_folder+str(n)+'_'+str(m), v.T)
+    #nnz_elements(v.T,tol=1e-4)
+    return v.T
+
 if __name__ == "__main__":
     from toolslsq import *
     from pykrylov.linop import LinearOperator
     from pykrylov.linop import *
-    X = 10 * np.random.rand(2600,3400)
-    X = np.array([[0.2867,0.8133,0.2936],[0.9721,0.7958,0.3033],
-                  [0.6198,0.6210,0.1496],[0.2760,0.8500,0.6658]])
-##    X = np.array([[0.2867,0.8133,0.2936]])
-##    X = np.array([[1.,2.,3.,4.]])
-
-    m=3;n=4
-    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct1(v),
-                       matvec_transp=lambda v: idct(z_v(n,J,v)))
-    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct(v),
-                       matvec_transp=lambda v: idct(z_v(n,J,v)))
-
-    #print A
-
-    print idct(X)
-    print dct(X)
+    partial_DCT(n = 3, m = 2, delta = 1.0e-05)
+    DCT(n = 3, m = 2, delta = 1.0e-05)
+    
+##    X = 10 * np.random.rand(2600,3400)
+##    X = np.array([[0.2867,0.8133,0.2936],[0.9721,0.7958,0.3033],
+##                  [0.6198,0.6210,0.1496],[0.2760,0.8500,0.6658]])
+####    X = np.array([[0.2867,0.8133,0.2936]])
+####    X = np.array([[1.,2.,3.,4.]])
+##
+##    m=3;n=4
+##    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct1(v),
+##                       matvec_transp=lambda v: idct(z_v(n,J,v)))
+##    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct(v),
+##                       matvec_transp=lambda v: idct(z_v(n,J,v)))
+##
+##    #print A
+##
+##    print idct(X)
+##    print dct(X)
 ##    
 ##    >> dct(A)
 ##
