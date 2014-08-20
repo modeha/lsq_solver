@@ -25,6 +25,9 @@ import numpy as np
 from math import sqrt
 import sys, logging
 from numpy.linalg import norm
+from math import log
+import numpy
+numpy.set_printoptions(threshold=numpy.nan)
 
 import pdb
 class RegQPInteriorPointSolver(object):
@@ -1144,12 +1147,12 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         # Collect basic info about the problem.
         zero = np.zeros(n)
-
-        self.d  =  lsq.model.d.copy()
+        self.d  =  lsq.nlp.d.copy()
         self.b  = -lsq.cons(zero)[self.d.shape[0]:]        # Right-hand side
         self.db =  np.concatenate((self.d, self.b))
         self.c0 =  lsq.obj(zero)                   # Constant term in objective
-        self.c  =  lsq.model.c.copy()                     # Cost vector
+        self.c  =  lsq.nlp.c.copy()                     # Cost vector
+
 
         nr = self.d.shape[0]
         nx = self.c.shape[0]
@@ -1166,6 +1169,8 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         #  [ A1  0  A2 ]   : m
         self.A1 =  ReducedLinearOperator(self.J, range(nr,nr+m),range(0,nx))
         self.A2 =  ReducedLinearOperator(self.J, range(nr,self.J.shape[0]),range(nx+nr,n))
+
+
 
         self.A  = BlockLinearOperator([[self.A1, self.A2]])
 
@@ -1239,8 +1244,8 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
     def get_dimensions(self):
         "Return (n, nx, nr, ns, m)."
         qp = self.lsq
-        nx = qp.model.nx     # nx is the size of x.
-        nr = qp.model.nr     # nr is the size of r.
+        nx = qp.nlp.nx     # nx is the size of x.
+        nr = qp.nlp.nr     # nr is the size of r.
         ns = self.nSlacks    # ns is the size of s (qp.n = nx + nr + ns).
         n  = nx + nr + ns
         m  = self.b.shape[0]
@@ -1339,7 +1344,12 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
             # Compute duality measure.
             if ns > 0:
-                mu = sz/ns
+                ### (x-l)*zL, (u-x)*zU, as well as of s*zS and t*zT.
+                l = self.lsq.Lcon[:nx]
+                u = self.lsq.Ucon[:nx]
+                x_l_z = sum((x-l)*z)
+                u_x_z = sum((u-x)*z)
+                mu = abs((x_l_z+u_x_z+sz/ns)/3)
             else:
                 mu = 0.0
 
@@ -1436,7 +1446,6 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
                                           dResid, cResid, rgap, qNorm,
                                           wNorm)
 
-            #print kktResid
             if kktResid <= tolerance:
                 status = 'Optimal solution found'
                 short_status = 'opt'
@@ -1459,7 +1468,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
             nb_bump = 0
             
-            self.update_linear_system(s, z, regpr, regdu)            
+            self.update_linear_system(s, z, regpr, regdu)
             if PredictorCorrector:
                 # Use Mehrotra predictor-corrector method.
                 # Compute affine-scaling step, i.e. with centering = 0.
@@ -1683,6 +1692,8 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         rhs[nx+ns:n] = self.d
         m = self.b.shape[0]
         rhs[n:n+m] = self.b
+        print rhs
+        sss        
         return rhs
 
     def update_initial_guess_rhs(self, rhs):
@@ -1809,28 +1820,29 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         #Construisons g,f et resolvons Ax_0=f, b=[g-Bx,0]
         g = rhs[n:]
         f = rhs[:n] 
-    
+
         x_0 = -M*f
         b = g-B*x_0
 
         #lsqr = CRAIGFramework(B)
         #lsqr = LSMRFramework(B)
-        
+
 
         # self.regpr_min = 1.0e-10
         # self.regdu_min = 1.0e-10
         preconditioner = True#False#
         preconditioner = True#False
+        
         if preconditioner:
             lsqr = eval(self.iter_solver+'(B)')
-            lsqr.solve(b, etol=1e-9, M = N, N = M,show=False)
+            lsqr.solve(b, etol=1e-38, M = N, N = M,show=False)
             xsol = x_0 + lsqr.x
             w = b - B * lsqr.x
             ysol = N(w)
             sol_final = np.concatenate((xsol, ysol), axis=0)
         else:
             lsqr = eval(self.iter_solver+'(self.H)')
-            lsqr.solve(rhs,atol = 1e-8, btol = 1e-8)
+            lsqr.solve(rhs,atol = 1e-12, btol = 1e-12)
             sol_final=lsqr.x
         return sol_final, 0, 0
 

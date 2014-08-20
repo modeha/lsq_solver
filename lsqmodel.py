@@ -61,7 +61,7 @@ class LSQModel(NLPModel):
         Bmat = self.B
         return  Bmat
 
-    def jac(self, x):
+    def jac(self, x=None):
         """
         Evaluate Jacobian of constraints.
         In the linear case of constraints this is

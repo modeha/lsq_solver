@@ -10,6 +10,8 @@ function PDCOTest(m,n,k)
  
   options = pdcoSet;
   options.StepTol = 0.5;
+  options.FeaTol       =  1e-6;
+  options.OptTol       =  1e-6;
   %options.MaxIter = 100;
   options.mu0       = 1e-0;  % An absolute value
   options.LSMRatol1 = 1e-6;  % For LPs, LSQR must solve quite accurately
@@ -17,6 +19,7 @@ function PDCOTest(m,n,k)
   options.Print     = 1;
   options.Method    = 3;  % Will change to 1 or 3
                           %1=Cholesky  2=QR  3=LSMR  4=MINRES  21=SQD
+  options.MaxIter      =    30;
 
 
   x0    = 0.5*ones(n,1);     % Initial x

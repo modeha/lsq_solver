@@ -1,5 +1,5 @@
 from dctt import partial_DCT,DCT
-from lsq_testproblem import *
+from lsq_testproblem_old import *
 from lsqmodel import LSQModel, LSQRModel
 from nlpy import __version__
 from slack_nlp import SlackFrameworkNLP as SlackFramework
@@ -108,7 +108,10 @@ multiple_problems = len(args) > 1
 args = ['example']    
 for probname in args:
     t_setup = cputime()
-    lsqp = DCT(n,m,delta)#partial_
+    #lsqp = DCT(n,m,delta)#partial_
+    #n=2;m= 2;
+    #lsqp= exampleliop(n,m)
+    lsqp = partial_DCT(n,m,delta)
 	
     t_setup = cputime() - t_setup
 
@@ -150,7 +153,7 @@ if not multiple_problems:
     
    
     log.info('Problem name %10s'%probname[:-6])
-    log.info('Non zero elements in minimizer %6.f'%nnz)
+    #log.info('Non zero elements in minimizer %6.f'%nnz)
 
 
     # log.info('Final x: %s, |x| = %7.1e' % (repr(regqp.x),norm2(regqp.x)))

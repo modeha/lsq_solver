@@ -1,5 +1,5 @@
 function [x,IterN,realTol,objtrue,time] = ...
-    pdco1(pdObj,pdMat,b,bl,bu,d1,d2,options,x0,y0,z0,xsize,zsize,lsmr_solver)
+    pdco(pdObj,pdMat,b,bl,bu,d1,d2,options,x0,y0,z0,xsize,zsize,lsmr_solver)
 
 %-----------------------------------------------------------------------
 % pdco.m: Primal-Dual Barrier Method for Convex Objectives (28 Apr 2012)
@@ -197,6 +197,8 @@ function [x,IterN,realTol,objtrue,time] = ...
 % 28 Apr 2012: Added diag preconditioning for MINRES when pdMat is a matrix
 %              (similar to what we do for LSMR).
 %-----------------------------------------------------------------------
+  lsmr_norm =[];
+  lsmr_i = 1;
 
   PriLev   = options.Print;
   wait     = options.wait;
@@ -712,9 +714,10 @@ function [x,IterN,realTol,objtrue,time] = ...
                grad      =   pdxxxmat( pdMat,2,m,n,dy );  % grad = A'dy
                grad(fix) =   0;    % Is this needed?      % grad is a work vector
                dx        =   H.*(grad - w);
-               
-              
-               
+               %dx = dx_(pdMat,dy,H,w,fix);
+               lsmr_norm(lsmr_i) = normAr;
+               lsmr_i = lsmr_i+1;
+               %norm(dx,2)
          
         elseif lsmr_solver==2 % use lsmr_spot to solve system
         opts.show = false;
@@ -723,6 +726,7 @@ function [x,IterN,realTol,objtrue,time] = ...
         opts.N = m;
 
          rhs    = [ w; r1 ];
+         %rhs    = [ D.*w; r1./d2 ];
          
          A = -diag(H);
          B = pdMat;
@@ -745,28 +749,31 @@ function [x,IterN,realTol,objtrue,time] = ...
               itncg = flags.niters;
               %dx = x_0 + lsqr;
               w_b = b_ - B * lsqr;
-              ysol = N*w_b;
-              dy = ysol;
+              dy = N*w_b;
               dx = dx_(B,dy,H,w,fix);
+              
+              lsmr_norm(lsmr_i) = normAr;
+              lsmr_i = lsmr_i+1;
+              %norm(dx,2)
         else
         opts.show = false;
         opts.sqd  = true;  % Indicates that N acts as regularization.
-        opts.M = n;
-        opts.N = m;
+        opts.M = m;
+        opts.N = n;
          rhs_    = [ w; r1 ];
+         rhs_    = [ D.*w; r1./d2 ];
          A = -diag(H);
          B = pdMat;
          C = sparse(1:m, 1:m, d2.^2, m,m);
-         K = [A B';B C];
-         [lsqr, flags, stats]   = lsmr_spot(K,rhs_,opts);  % dont set localSize
+         %K = [A B';B C];
+         [lsqr, flags, stats]   = lsmr_spot(B,rhs_(n+1:end),opts);  % dont set localSize
               istop_lsmr = stats.istop;
               normAr = stats.normAr;
+              %lsqr = lsqr(1:m);
               itncg = flags.niters;
-              dy =lsqr(n+1:end);
+              dy =lsqr;
               %dx =lsqr(1:n); 
-              dx = dx_(B,dy,H,w,fix);
-                  
-            
+              dx = dx_(B,dy,H,w,fix);  
         end
 
         %[ dy, istop, itncg, dr1norm, dr2norm, danorm, dacond, ...
@@ -960,7 +967,7 @@ function [x,IterN,realTol,objtrue,time] = ...
     complementary = Cinf0 <=  opttol;
     enough        = PDitns>=       4;  % Prevent premature termination.
     converged     = primalfeas  &  dualfeas  &  complementary  &  enough;
-
+    
     %-------------------------------------------------------------------
     % Iteration log.
     %-------------------------------------------------------------------
@@ -1143,6 +1150,7 @@ function [x,IterN,realTol,objtrue,time] = ...
   z    = grad + (d1.^2).*x - r2;     % z = grad + (d1.^2).*x - A'y
 
   time = cputime - time;
+  lsmr_norm;
   if PriLev > 0
     fprintf('\nPDitns  =%10g %sitns =%10g    time    =%10.1f', ...
                PDitns,solver,CGitns,time);

@@ -64,6 +64,7 @@ class SlackFrameworkNLP( NLPModel ):
         self.original_m = self.m
         self.original_nbounds = self.nbounds
         
+        
         # Number of slacks for inequality constraints with a lower bound
         n_con_low = self.nlowerC + self.nrangeC ; self.n_con_low = n_con_low
 
@@ -157,25 +158,6 @@ class SlackFrameworkNLP( NLPModel ):
         c[om:om+nrangeC] -= self.Ucon[rangeC]
         c[om:om+nrangeC] *= -1
         c[om:om+nrangeC] -= s_up[nupperC:]
-
-        # Add linear constraints corresponding to bounds on original problem
-        lowerB = self.lowerB ; nlowerB = self.nlowerB ; Lvar = self.Lvar
-        upperB = self.upperB ; nupperB = self.nupperB ; Uvar = self.Uvar
-        rangeB = self.rangeB ; nrangeB = self.nrangeB
-
-        nt = on + self.n_con_low + self.n_con_up
-        ntlow = nt + self.n_var_low
-        t_low = x[nt:ntlow]
-        t_up  = x[ntlow:]
-
-        b = c[om+nrangeC:]
-
-        b[:nlowerB] = x[lowerB] - Lvar[lowerB] - t_low[:nlowerB]
-        b[nlowerB:nlowerB+nrangeB] = x[rangeB] - Lvar[rangeB] - t_low[nlowerB:]
-        b[nlowerB+nrangeB:nlowerB+nrangeB+nupperB] =\
-         Uvar[upperB] - x[upperB] - t_up[:nupperB]
-        b[nlowerB+nrangeB+nupperB:] = Uvar[rangeB] - x[rangeB] - t_up[nupperB:]
-
         return c
 
 
@@ -219,7 +201,6 @@ class SlackFrameworkNLP( NLPModel ):
         om = self.original_m
         n = self.n
         m = self.m
-    
 
         # List() simply allows operations such as 1 + [2,3] -> [3,4]
         lowerC = List(nlp.lowerC) ; nlowerC = nlp.nlowerC
@@ -249,13 +230,6 @@ class SlackFrameworkNLP( NLPModel ):
         bot += nlowerB;  p[bot:bot+nrangeB] += v[rangeB]
         bot += nrangeB;  p[bot:bot+nupperB] -= v[upperB]
         bot += nupperB;  p[bot:bot+nrangeB] -= v[rangeB]
-
-        ## Insert contribution of slacks on the bound constraints
-        #bot = om+nrangeC; p[bot:bot+nlowerB] -= v[self.tLL]
-        #bot += nlowerB;  p[bot:bot+nrangeB] -= v[self.tLR]
-        #bot += nrangeB;  p[bot:bot+nupperB] -= v[self.tUU]
-        #bot += nupperB;  p[bot:bot+nrangeB] -= v[self.tUR]
-
         return p
 
 
@@ -280,6 +254,7 @@ class SlackFrameworkNLP( NLPModel ):
         p = np.zeros(n)
         vmp = v[:om].copy()
         vmp[upperC] *= -1.0
+
         vmp[rangeC] -= v[om:]
 
         p[:on] = nlp.jtprod(x[:on], vmp)
@@ -292,20 +267,11 @@ class SlackFrameworkNLP( NLPModel ):
 
         #if self.keep_variable_bounds==False:
             # Insert contribution of bound constraints on the original problem
-        bot = om+nrangeC; p[lowerB] += v[bot:bot+nlowerB]
-        bot += nlowerB;  p[rangeB] += v[bot:bot+nrangeB]
-        bot += nrangeB;  p[upperB] -= v[bot:bot+nupperB]
-        bot += nupperB;  p[rangeB] -= v[bot:bot+nrangeB]
-
-        # Insert contribution of slacks on the bound constraints
-        #bot = om+nrangeC; p[self.tLL] -= v[bot:bot+nlowerB]
-        #bot += nlowerB;  p[self.tLR] -= v[bot:bot+nrangeB]
-        #bot += nrangeB;  p[self.tUU] -= v[bot:bot+nupperB]
-        #bot += nupperB;  p[self.tUR] -= v[bot:bot+nrangeB]
-
+        #bot = om+nrangeC; p[lowerB] += v[bot:bot+nlowerB]
+        #bot += nlowerB;  p[rangeB] += v[bot:bot+nrangeB]
+        #bot += nrangeB;  p[upperB] -= v[bot:bot+nupperB]
+        #bot += nupperB;  p[rangeB] -= v[bot:bot+nrangeB]
         return p
-    
-
 
     def A(self):
         """
@@ -332,4 +298,24 @@ class SlackFrameworkNLP( NLPModel ):
     def hess(self, x, z, **kwargs):
         return SimpleLinearOperator(self.n, self.n, symmetric=True,
                          matvec=lambda u: self.hprod(x,z,u,**kwargs))
+
+if __name__ == '__main__':
+        from lsqmodel import LSQModel
+        #from lsq import lsq
+        #from mfnlp import *
+        from lsq_testproblem_old import *
+        import numpy as np
+        n=1024;m= 128;
+        lsqpr  =  exampleliop(n,m)
+        #lsqp = exampleliop()
+        
+        slack = SlackFrameworkNLP( lsqpr ) 
+        j = slack.jac(slack.x0)
+    
+        print 50*"*"
+        print slack.cons(slack.x0).shape
+        print slack.A().shape
+        print slack.jac(slack.x0).shape
+        print slack.A()*np.ones(slack.A().shape[1])
+    
 
