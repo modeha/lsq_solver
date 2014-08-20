@@ -1153,7 +1153,6 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         self.c0 =  lsq.obj(zero)                   # Constant term in objective
         self.c  =  lsq.nlp.c.copy()                     # Cost vector
 
-
         nr = self.d.shape[0]
         nx = self.c.shape[0]
         ns = self.nSlacks
@@ -1692,8 +1691,6 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         rhs[nx+ns:n] = self.d
         m = self.b.shape[0]
         rhs[n:n+m] = self.b
-        print rhs
-        sss        
         return rhs
 
     def update_initial_guess_rhs(self, rhs):
