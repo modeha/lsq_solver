@@ -1,5 +1,5 @@
 from dctt import partial_DCT,DCT
-from lsq_testproblem_old import *
+from lsq_testproblem import *
 from lsqmodel import LSQModel, LSQRModel
 from nlpy import __version__
 from slack_nlp import SlackFrameworkNLP as SlackFramework
@@ -48,32 +48,38 @@ parser.add_option("-t", "--tol", action="store", type="float", default=None,
         dest="tol", help="Specify relative stopping tolerance")
 
 parser.add_option("-n", "--n_dim", action="store", type="int", default=None,
-        dest="n_dim", help="Specify relative stopping tolerance")
+        dest="n_dim", help="Specify relative dimention")
 
 parser.add_option("-m", "--m_dim", action="store", type="int", default=None,
-        dest="m_dim", help="Specify relative stopping tolerance")
+        dest="m_dim", help="Specify relative dimention")
 
 parser.add_option("-r", "--delta_size", action="store", type="float", default=None,
-        dest="delta_size", help="Specify relative stopping tolerance")
+        dest="delta_size", help="Specify relative norm 1")
 
 
 parser.add_option("-p", "--regpr", action="store", type="float", default=None,
         dest="regpr", help="Specify initial primal regularization parameter")
+
 parser.add_option("-d", "--regdu", action="store", type="float", default=None,
         dest="regdu", help="Specify initial dual regularization parameter")
  
 parser.add_option("-l", "--long-step", action="store_true", default=False,
         dest="longstep", help="Use long-step method")
+
 parser.add_option("-f", "--assume-feasible", action="store_true",
         default=False, dest="assume_feasible",
         help="Deactivate infeasibility check")
+
 parser.add_option("-V", "--verbose", action="store_true", default=False,
         dest="verbose", help="Set verbose mode")
+
+parser.add_option("-w", "--problem", action="store", dest="problem", help="problem")
+
 
 # Parse command-line options
 (options, args) = parser.parse_args()
 Probname = ''
-print 'Brave man! Using example block system!'
+#print 'Brave man! Using example block system!'
 Probname +='_4x4'
 Solver = RegLSQPInteriorPointIterativeSolver4x4   # RegLSQInteriorPointSolver4x4
 
@@ -98,6 +104,14 @@ if options.n_dim is not None:
 if options.delta_size is not None:
     delta = options.delta_size
 # Set printing standards for arrays.
+
+if options.problem=='partial_DCT':
+    lsqp = partial_DCT(n,m,delta)
+    
+else:
+
+    lsqp = DCT(n,m,delta)
+    
 numpy.set_printoptions(precision=3, linewidth=70, threshold=10, edgeitems=2)
 
 multiple_problems = len(args) > 1
@@ -105,13 +119,14 @@ multiple_problems = len(args) > 1
 #if not options.verbose:
     #log.info(hdr)
     #log.info('-'*len(hdr))
-args = ['example']    
+args = ['partialDCT']    
 for probname in args:
     t_setup = cputime()
     #lsqp = DCT(n,m,delta)#partial_
     #n=2;m= 2;
     #lsqp= exampleliop(n,m)
-    lsqp = partial_DCT(n,m,delta)
+    #lsqp = DCT(n,m,delta)
+    #lsqp = partial_DCT(n,m,delta)
 	
     t_setup = cputime() - t_setup
 
@@ -152,7 +167,7 @@ if not multiple_problems:
     #print x
     
    
-    log.info('Problem name %10s'%probname[:-6])
+    log.info('Problem name %10s'%probname)
     #log.info('Non zero elements in minimizer %6.f'%nnz)
 
 

@@ -756,11 +756,14 @@ function [x,IterN,realTol,objtrue,time] = ...
               lsmr_i = lsmr_i+1;
               %norm(dx,2)
         else
+        opts.atol = 1.0e-4;
+        opts.btol = 1.0e-4;
+        opts.etol = 1.0e-4;
         opts.show = false;
         opts.sqd  = true;  % Indicates that N acts as regularization.
         opts.M = m;
         opts.N = n;
-         rhs_    = [ w; r1 ];
+         %rhs_    = [ w; r1 ];
          rhs_    = [ D.*w; r1./d2 ];
          A = -diag(H);
          B = pdMat;
@@ -948,12 +951,12 @@ function [x,IterN,realTol,objtrue,time] = ...
       stepz = stepx;
     end
 
-    if fail
-      fprintf('\n     Linesearch failed (nf too big)');
-      nfail = nfail + 1;
-    else
-      nfail = 0;
-    end
+%     if fail
+%       fprintf('\n     Linesearch failed (nf too big)');
+%       nfail = nfail + 1;
+%     else
+%       nfail = 0;
+%     end
 
     %-------------------------------------------------------------------
     % Set convergence measures.
@@ -967,6 +970,12 @@ function [x,IterN,realTol,objtrue,time] = ...
     complementary = Cinf0 <=  opttol;
     enough        = PDitns>=       4;  % Prevent premature termination.
     converged     = primalfeas  &  dualfeas  &  complementary  &  enough;
+    
+%     primalfeas  
+%       Pinf  
+%       Cinf0 
+%     opttol
+%     complementary  
     
     %-------------------------------------------------------------------
     % Iteration log.
@@ -1021,7 +1030,8 @@ function [x,IterN,realTol,objtrue,time] = ...
       end
       inform = 1;
       break
-    elseif nfail  >= maxfail
+    elseif nfail  >  maxfail
+        
       if PriLev > 0
          fprintf('\n   Too many linesearch failures')
       end
@@ -1151,12 +1161,12 @@ function [x,IterN,realTol,objtrue,time] = ...
 
   time = cputime - time;
   lsmr_norm;
+  realTol = max([Pinf,Dinf,Cinf,atol]);
   if PriLev > 0
     fprintf('\nPDitns  =%10g %sitns =%10g    time    =%10.1f', ...
                PDitns,solver,CGitns,time);
     %pdxxxdistrib( abs(x),abs(z) );   % Private function
     toc
-    realTol = max([Pinf,Dinf,Cinf,atol])
     if wait
       keyboard
     end

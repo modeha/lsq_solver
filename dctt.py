@@ -142,9 +142,10 @@ def sign(x):
 
 def z_v(n,J,v):
     z = np.zeros([n,1])
+    J_n = J[:n]
     if  len(v.shape)==1:
-        v = v.reshape(v.shape[0],1)
-    z[J] = v[J]
+        v = v.reshape(v.shape[0],1) 
+    z[J_n] = v[J_n]
     return z[:,0]
 
 def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
@@ -152,7 +153,7 @@ def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
     #n  signal dimension
     #m  number of measurements
     z = np.zeros([n,1])
-    J = np.random.permutation(range(n)) # m randomly chosen indices
+    #J = np.random.permutation(range(n)) # m randomly chosen indices
     J = np.array(range(n))
     
     # generate the m*n partial DCT matrix whose m rows are
@@ -175,7 +176,7 @@ def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
     p = n; n = m
     y = sprandvec(p,30)
     d = Q*y
-    d = np.array(d)[:,0]    
+    d = np.array(d)[:,0] 
     c = np.zeros(n)
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)
@@ -271,7 +272,7 @@ if __name__ == "__main__":
     from toolslsq import *
     from pykrylov.linop import LinearOperator
     from pykrylov.linop import *
-    partial_DCT(n = 3, m = 2, delta = 1.0e-05)
+    partial_DCT(n = 2, m = 3, delta = 1.0e-05)
     DCT(n = 3, m = 2, delta = 1.0e-05)
     
 ##    X = 10 * np.random.rand(2600,3400)

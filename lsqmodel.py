@@ -122,6 +122,7 @@ class LSQRModel(LSQModel):
         _Uvar = np.empty(n+p)
         _Uvar[:n] = Uvar
         _Uvar[n:] = np.inf
+        x0 = np.zeros(n+p)
 
         NLPModel.__init__(self, n=n+p, m=m+p, Lcon=_Lcon, \
                           Ucon=_Ucon, Lvar=_Lvar, Uvar=_Uvar, **kwargs)
