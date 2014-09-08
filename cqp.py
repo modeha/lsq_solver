@@ -1345,12 +1345,12 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
             # Compute duality measure.
             if ns > 0:
                 ### (x-l)*zL, (u-x)*zU, as well as of s*zS and t*zT.
-                #l = self.lsq.Lcon[:nx]
-                #u = self.lsq.Ucon[:nx]
-                #x_l_z = sum((x-l)*z)
-                #u_x_z = sum((u-x)*z)
-                #mu = abs((x_l_z+u_x_z+sz/ns)/3)
-                mu = sz/ns
+                l = self.lsq.Lcon[:nx]
+                u = self.lsq.Ucon[:nx]
+                x_l_z = sum((x-l)*z)
+                u_x_z = sum((u-x)*z)
+                mu = abs((x_l_z+u_x_z+sz/ns)/3)
+                #mu = sz/ns
             else:
                 mu = 0.0
 
@@ -1762,7 +1762,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
     """Use an iterative solver instead of  the augmented system"""
     def __init__(self, *args, **kwargs):
         self.Tole = [1e-04,1e-05,1e-06,1e-08,1e-12]
-        self.Tole = [1e-19]
+        #self.Tole = [1e-19]
         self.i = -1        
         super(RegLSQInteriorPointIterativeSolver4x4, self)\
              .__init__(*args, **kwargs)

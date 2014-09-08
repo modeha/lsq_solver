@@ -176,7 +176,7 @@ def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
     p = n; n = m
     y = sprandvec(p,30)
     d = Q*y
-    d = np.array(d)[:,0] 
+    d = np.array(d)[:,0]
     c = np.zeros(n)
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)

@@ -724,9 +724,12 @@ function [x,IterN,realTol,objtrue,time] = ...
         opts.sqd  = true;  % Indicates that N acts as regularization.
         opts.M = n;
         opts.N = m;
+        opts.atol = 1.0e-4;
+        opts.btol = 1.0e-4;
+        opts.etol = 1.0e-4;
 
          rhs    = [ w; r1 ];
-         %rhs    = [ D.*w; r1./d2 ];
+         rhs    = [ D.*w; r1./d2 ];
          
          A = -diag(H);
          B = pdMat;
