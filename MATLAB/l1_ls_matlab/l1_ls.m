@@ -96,7 +96,7 @@ end
 
 % VARIABLE ARGUMENT HANDLING
 t0         = min(max(1,1/lambda),2*n/1e-3);
-defaults   = {1e-3,false,1e-3,5000,zeros(n,1),ones(n,1),t0};
+defaults   = {1e-6,false,1e-3,5000,zeros(n,1),ones(n,1),t0};
 given_args = ~cellfun('isempty',varargin);
 defaults(given_args) = varargin(given_args);
 [reltol,quiet,eta,pcgmaxi,x,u,t] = deal(defaults{:});

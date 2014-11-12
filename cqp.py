@@ -1133,6 +1133,8 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         self.lsq = lsq
         self.qp = lsq
         self.tolerance = 1.0e-6
+        self.tol = 1.0e-6
+        self.Niter_lsmr = []
 
         # The Jacobian has the form
         #
@@ -1161,6 +1163,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
         # Apply in-place problem scaling if requested.
         self.prob_scaled = False
+        #print self.J.dtype
 
         self.Q = ReducedLinearOperator(self.J, range(0,nr),range(0,nx))
         # The Jacobian has the form
@@ -1209,6 +1212,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
                                  [self.I_nr,Z_nr_m,Z_nr_ns],\
                                  [self.I_m*0,Z_m_ns],\
                                  [self.I_ns*0]], symmetric=True)
+        
         # Set regularization parameters.
         self.regpr = kwargs.get('regpr', 1.0) ; self.regpr_min = 1.0e-8
         self.regdu = kwargs.get('regdu', 1.0) ; self.regdu_min = 1.0e-8
@@ -1344,12 +1348,12 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
             # Compute duality measure.
             if ns > 0:
-                ### (x-l)*zL, (u-x)*zU, as well as of s*zS and t*zT.
                 l = self.lsq.Lcon[:nx]
                 u = self.lsq.Ucon[:nx]
                 x_l_z = sum((x-l)*z)
                 u_x_z = sum((u-x)*z)
-                mu = abs((x_l_z+u_x_z+sz/ns)/3)
+                mu = max((x_l_z+u_x_z+sz)/(2*n+ns),sz/ns)
+                
                 #mu = sz/ns
             else:
                 mu = 0.0
@@ -1378,6 +1382,8 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 
             # Compute overall residual for stopping condition.
             kktResid = max(spResid, sdResid, rgap2)
+            self.tol = kktResid
+
 
         
 
@@ -1447,7 +1453,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
                                           dResid, cResid, rgap, qNorm,
                                           wNorm)
 
-            if kktResid <= tolerance:
+            if kktResid <= tolerance and iter > 1:
                 status = 'Optimal solution found'
                 short_status = 'opt'
                 finished = True
@@ -1587,6 +1593,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         self.solve_time = solve_time
         self.status = status
         self.short_status = short_status
+        print self.Niter_lsmr
 
         # Unscale problem if applicable.
         #if self.prob_scaled: self.unscale()
@@ -1658,7 +1665,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
         z = -dz
 
         # If there are no inequality constraints, this is it.
-        if n == on: return (xr,y,z)
+        if n == on: return (xr,y,z,s)
 
         # Use Mehrotra's heuristic to ensure (s,z) > 0.
         if np.all(s >= 0):
@@ -1761,8 +1768,7 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):    
     """Use an iterative solver instead of  the augmented system"""
     def __init__(self, *args, **kwargs):
-        self.Tole = [1e-04,1e-05,1e-06,1e-08,1e-12]
-        #self.Tole = [1e-19]
+        #self.Tole = [1e-04,1e-05,1e-06,1e-08,1e-12]
         self.i = -1        
         super(RegLSQInteriorPointIterativeSolver4x4, self)\
              .__init__(*args, **kwargs)
@@ -1808,13 +1814,14 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         from numpy import ones
         import numpy
         #numpy.set_printoptions(threshold='nan')
-        if self.i >= len(self.Tole):
-            tol_ = self.Tole[-1]
-        else:
+        #if self.i >= len(self.Tole):
+            #tol_ = self.Tole[-1]
+        #else:
             
-            tol_ = self.Tole[self.i]
-        self.i = self.i + 1
-
+            #tol_ = self.Tole[self.i]
+        #self.i = self.i + 1
+        tol_ = min(self.tol,1e-6)
+        
         A,B,C = self.pykrylov()
         m,n = B.shape 
         p, q = A.shape
@@ -1843,16 +1850,17 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
 
         
         if preconditioner:
-            lsqr = eval(self.iter_solver+'(B)')
-            lsqr.solve(b, etol=tol_, M = N, N = M,show=False)
-            xsol = x_0 + lsqr.x
-            w = b - B * lsqr.x
+            lsq = eval(self.iter_solver+'(B)')
+            lsq.solve(b, etol=tol_, M = N, N = M,show=False)
+            xsol = x_0 + lsq.x
+            w = b - B * lsq.x
             ysol = N(w)
+            self.Niter_lsmr.append(lsq.itn)
             sol_final = np.concatenate((xsol, ysol), axis=0)
         else:
-            lsqr = eval(self.iter_solver+'(self.H)')
-            lsqr.solve(rhs,atol = tol_, btol = tol)
-            sol_final=lsqr.x
+            lsq = eval(self.iter_solver+'(self.H)')
+            lsq.solve(rhs,atol = tol_, btol = tol)
+            sol_final=lsq.x
         return sol_final, 0, 0
 
 

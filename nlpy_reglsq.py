@@ -1,4 +1,4 @@
-from dctt import partial_DCT,DCT
+from dctt import partial_DCT,Random
 from lsq_testproblem import *
 from lsqmodel import LSQModel, LSQRModel
 from nlpy import __version__
@@ -103,14 +103,18 @@ if options.n_dim is not None:
 
 if options.delta_size is not None:
     delta = options.delta_size
+else:
+    delta=1.0e-16
 # Set printing standards for arrays.
 
 if options.problem=='partial_DCT':
     lsqp = partial_DCT(n,m,delta)
     
 else:
-
-    lsqp = DCT(n,m,delta)
+    #m=4;n=6
+    #lsqp = partial_DCT(160,60,delta)#partial_
+    lsqp = Random(n,m,delta)
+    #lsqp = exampleliop(n,m)
     
 numpy.set_printoptions(precision=3, linewidth=70, threshold=10, edgeitems=2)
 
@@ -142,46 +146,77 @@ for probname in args:
     # Display summary line.
     probname=os.path.basename(probname)
     if not options.verbose:
+        format1  = '%-4d  %9.2e'
+        format1 += '  %-8.2e' * 6
+        format2  = '  %-7.1e  %-4.2f  %-4.2f'
+        format2 += '  %-8.2e' * 8
+	#output_line = format1 % (regqp.iter, regqp.obj_value, regqp.pResid,
+                                                  #regqp.dResid, regqp.cResid, regqp.rgap, regqp.qNorm,
+                                                  #regqp.wNorm)
+	#output_line += format2 % (regqp.mu, regqp.alpha_p, regqp.alpha_d,
+                                                   #regqp.nres, regqp.regpr, regqp.regdu, regqp.rho_q,
+                                                   #regqp.del_w, regqp.mins, regqp.minz, regqp.maxs)
+	#log.info(output_line)
+	log.info('-' * len(regqp.header))
 
-        sys.stdout.write(fmt % (probname, regqp.iter, regqp.obj_value,
-                                regqp.pResid, regqp.dResid, regqp.rgap,
-                                t_setup, regqp.solve_time, regqp.short_status))
-        if regqp.short_status == 'degn':
-            sys.stdout.write(' F')  # Could not regularize sufficiently.
-        sys.stdout.write('\n')
+        #sys.stdout.write(fmt % (probname, regqp.iter, regqp.obj_value,
+                                #regqp.pResid, regqp.dResid, regqp.rgap,
+                                #t_setup, regqp.solve_time, regqp.short_status))
+        #if regqp.short_status == 'degn':
+            #sys.stdout.write(' F')  # Could not regularize sufficiently.
+        #sys.stdout.write('\n')
     lsqp.close()
 
-log.info('-'*len(hdr))
+#log.info('-'*len(hdr))
 
 if not multiple_problems:
-    ##    _folder = str(os.getcwd()) + '/binary/'
-##    x0 = numpy.load(_folder+str(m)+'_'+str(n)+'.npz')
-##    x0 = x0[x0.files[0]]
-##    nnz0 = nnz_elements(x0,1e-3)
-##    log.info('Non zero elements in original signal %6.f'%nnz0)
     x = regqp.x[0:n]
+    norm_x0_x = norm2(.1*np.ones([1,n])-x)
 
     nnz = nnz_elements(x,1e-3)
+    Probname = str(n)+'--'+str(m)
+
     numpy.set_printoptions(threshold=5)
     numpy.set_printoptions(threshold='nan')
-    #print x
+    print x[1:10]
+
+
+    log.info('Non zero elements in minimizer %6.f'%nnz)
+
     
-   
-    log.info('Problem name %10s'%probname)
-    #log.info('Non zero elements in minimizer %6.f'%nnz)
-
-
-    # log.info('Final x: %s, |x| = %7.1e' % (repr(regqp.x),norm2(regqp.x)))
-    # log.info('Final y: %s, |y| = %7.1e' % (repr(regqp.y),norm2(regqp.y)))
-    # log.info('Final z: %s, |z| = %7.1e' % (repr(regqp.z),norm2(regqp.z)))
-
-    log.info(regqp.status)
+    x = regqp.x[0:n]
     log.info('#Iterations: %-d' % regqp.iter)
     log.info('RelResidual: %7.1e' % regqp.kktResid)
     log.info('Final cost : %21.15e' % regqp.obj_value)
     log.info('Setup time : %6.2fs' % t_setup)
     log.info('Solve time : %6.2fs' % regqp.solve_time)
-type='.pyc'; path = os.getcwd()
+    print '#LSMR Iterations:',regqp.Niter_lsmr
+    log.info('#LSMR Iterations: %-d' % sum(regqp.Niter_lsmr))
+    log.info('%-d  %7.1e  %7.1e  %7.1e %7.1e %-d' % (regqp.iter,regqp.obj_value,regqp.kktResid,regqp.solve_time,norm_x0_x,nnz))
+    #if not os.path.isfile('/Users/Mohsen/Documents/nlpy_mohsen/lsq/Results.txt'):
+	    #f =open ('/Users/Mohsen/Documents/nlpy_mohsen/lsq/LSQ_Results.txt','a+')
+	    #path =6*' '+'Name'+ 23*' '+'Iter'+13*' '+'Cost'+8*' '+'RelResidual'\
+		 #+4*' '+'Time'+4*' '
+	    #f.write(path)
+	    #f.write('\n')
+	    #f.write('-'*(86+27))
+	    #f.write('\n')
+    f =open ('/Users/Mohsen/Documents/nlpy_mohsen/lsq/LSQ_Results.txt','a+')
+    #
+    #f.close()
+    #f =open ('Results.txt','a+')
+    #f.write('\n')
+    f.write('%-5s&      ' % Probname)
+    f.write('%-5d&       ' % regqp.iter)
+    f.write('%3e&   ' % regqp.obj_value)
+    f.write('%3e&   ' % regqp.kktResid)
+    f.write('%1.3f&   ' % regqp.solve_time)
+    f.write('%-5d\\\       ' % sum(regqp.Niter_lsmr))
+    #f.write('%-5d       ' % nnz)
+    #f.write('%3e   ' % norm_x0_x)
+    f.write('\n')
+    f.close()    
+    type='.pyc'; path = os.getcwd()
 for file in os.listdir(path):
     if str(file[-len(type):]) ==type:
         os.remove(path+'/'+file)

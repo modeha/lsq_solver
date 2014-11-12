@@ -214,9 +214,14 @@ if __name__ == "__main__":
                        matvec_transp=lambda v: idctt(z_v(n,J,v)))
     #print A
 
-    print idctt(X)
-    print dctt1(X)
+    #print idctt(X)
+    #print '\n\n'
+    #print dctt1(X)
       
 ##    A,y = l1_ls_itre(m = 3, n = 4)
 ##    a=A*np.ones([A.shape[1],1])
 ##    print A.to_array()
+A,y = l1_ls_itre(m = 3, n = 4)
+a=A*np.ones([A.shape[1],1])
+print A.to_array()
+

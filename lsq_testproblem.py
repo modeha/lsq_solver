@@ -1,6 +1,5 @@
 from lsqmodel import LSQModel, LSQRModel
 from Others.toolslsq import *
-from Others.dctt import dctt, test, idctt,l1_ls_itre
 
 from numpy import fft, array, arange, zeros, dot, transpose
 from pysparse import spmatrix
@@ -360,45 +359,34 @@ def fourth_class_tp(path=  "/Users/Mohsen/Documents/nlpy_mohsen/lsq/output/MATLA
     name = str(n)+'_'+str(p)+'_'+str(p)+'_l1_tp'+'.txt'
     return new_Q,B,d,c,lcon,ucon,lvar,uvar,name
 
-def fifth_class_tp(p=0,n=0):
-    Q,y = test (p,n)
+def fifth_class_tp(p,n):
+    p = max(p,n)
+    n = min(p,n)
+    Q = 3000 * np.random.rand(p,n)
+    #y = np.dot(Q,x0) 
+    #y = np.ones([p,1])
+    #y = -np.ones([p,1])
+    y = np.zeros([p,1])
+    y[0]=1
+    #y[-1] = 1
+    #y[-2] = 1
+    #y[2] = 1
+    #y = sprandvec(p,30)
+    m = n
+    #B = -10*np.random.rand(n,n)
+    B = 30000 * np.random.rand(m, n)*(np.random.randint(3, size=(m,n))-1)    
     d = y[:,0]
-    eps = sys.float_info.epsilon
-    #inf = 1/eps    
-    #d = np.random.rand(p)
-    #Q = dctt(rog.hilb(p,n))
-    #for i in range(p):
-        #d[i]= Q[i,:].sum()
     c = np.zeros(n)
-    delta = 0.01
-    c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
-    ucon = np.zeros(2*n)
-    lcon = -np.ones(2*n)*inf
-    uvar = np.ones(2*n)*inf
-    lvar = -np.ones(2*n)*inf
     
-    #foo = [eps,1/eps, 1]
+    ucon = np.ones(n)
+    #30*np.random.rand(n)
+    lcon = -np.ones(n)*inf
+    uvar = np.ones(n)*inf
+    lvar = -np.ones(n)*inf
     
-
-    #uvar =[]; lvar = []
-    #for i in range(2*n):
-	    #uvar.append(random.choice(foo))
-	    #lvar.append(-random.choice(foo))    
-
-    #print 'uvar',uvar
-    #print 'lvar',lvar
-    I = np.identity(n)
-    B = np.zeros([2*n, 2*n])
-    B[:n,:n] =  I
-    B[n:,:n] = -I
-    B[:n,n:] = -I
-    B[n:,n:] = -I
-    Q_ = np.zeros([p,n])
-    new_Q = np.append(Q,Q_,axis=1)
-    p, n = new_Q.shape
     m, n = B.shape
     name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
-    return new_Q,B,d,c,lcon,ucon,lvar,uvar,name
+    return Q,B,d,c,lcon,ucon,lvar,uvar,name
 
 def sixeth_class_tp(p=0,n=0):
     
@@ -475,7 +463,7 @@ def convert_txt_to_npz():
 	lsqpr = lsq_tp_generator(Q,B,d,c,lcon,ucon,lvar,uvar,name,Model=LSQRModel)
         print lsqpr.name[:-3]
 
-def nnz_elements(probname='None',regqp='None'):
+def nnz_elements1(probname='None',regqp='None'):
     #path = '/Users/Mohsen/Documents/nlpy_mohsen/lsq/output/MATLAB/'
     #strname = probname
     #namef = None
@@ -509,6 +497,20 @@ def nnz_elements(probname='None',regqp='None'):
     zero = numpy.zeros((5,), dtype=numpy.float)
     x0 = zero; x = zero; nnz = 0; nnz0 =0
     return x0,x,nnz,nnz0
+    
+def nnz_elements(regqp,tol=1e-4):
+##    n = x0.shape[0]
+    print "non zero % with Tol  :",tol
+##    xmax0 = tol*np.linalg.norm(x0,np.inf)
+##    nnz0 = len(x0[abs(x0)>=xmax0])*1.0/len(x0)*100.
+    x = regqp
+    n = x.shape[0]
+    xmax = max(tol,tol*np.linalg.norm(x,np.inf))  
+    nnz = len(x[abs(x)>= xmax])*1.0/len(x)*100
+    print "Non zero elements are: ",nnz,"%"
+    # np.set_printoptions(threshold='nan')
+    # print x
+    return nnz
 
 def read_ampl(path='/Users/Mohsen/Documents/nlpy_mohsen/lsq/output/AMPL/', name=None):
     

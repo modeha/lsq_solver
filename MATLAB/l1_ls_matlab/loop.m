@@ -41,7 +41,7 @@ for i = 1:n(1)
 % a=[dim(i,1),dim(i,2)];
 % a
 
-    simple(rand(10),'type','direct','m',dim(i,1),'n',dim(i,2))
+    %simple(rand(10),'type','direct','m',dim(i,1),'n',dim(i,2))
     simple(rand(10),'type','sparse','n',dim(i,1),'m',dim(i,2),'sparse',dim(i,3))
     simple(rand(10),'type','gauss','n',dim(i,1),'m',dim(i,2))
     %%simple(rand(10),'testproblems',1,'k',dim(i,2))

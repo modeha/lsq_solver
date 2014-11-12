@@ -11,7 +11,7 @@ import numpy as np
 from nlpy.model.nlp import NLPModel
 from nlpy.tools import List
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
-from nlpy.krylov import SimpleLinearOperator
+from pykrylov.linop import  LinearOperator
 from nlpy.tools import List
 
 class SlackFrameworkNLP( NLPModel ):
@@ -241,7 +241,7 @@ class SlackFrameworkNLP( NLPModel ):
     def jac(self, x, **kwargs):
         # Create some shortcuts for convenience
         on = self.original_n        
-        return SimpleLinearOperator(self.n, self.m, symmetric=False,
+        return LinearOperator(self.n, self.m, symmetric=False,
                          matvec=lambda u: self.jprod(x,u,**kwargs),
                          matvec_transp=lambda u: self.jtprod(x[:on],u,**kwargs))
     
@@ -252,17 +252,17 @@ class SlackFrameworkNLP( NLPModel ):
         if z is None: z = np.zeros(self.m)
         # Create some shortcuts for convenience
         on = self.original_n
-        return SimpleLinearOperator(self.n, self.n, symmetric=True,
+        return LinearOperator(self.n, self.n, symmetric=True,
                          matvec=lambda u: self.hprod(x[:on],z,u,**kwargs))
 
 if __name__ == '__main__':
     from lsqmodel import LSQModel
     #from lsq import lsq
-    #from mfnlp import *
-    from lsq_testproblem_old import *
+    from dctt import partial_DCT
     import numpy as np
-    n=2;m= 1;
-    lsqpr  =  exampleliop(n,m)
+    n=5;m= 5;
+    lsqpr  =  partial_DCT(n,m)
+    print lsqpr.Q.shape
     print lsqpr.Q.to_array()
     print lsqpr.B.to_array()
     print lsqpr.Lcon

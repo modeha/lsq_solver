@@ -1,13 +1,17 @@
 import numpy as np
 from numpy import *
-from math import sqrt, cos, pi
+from lsqmodel import LSQRModel
+
+from pykrylov.linop import *
+from math import  cos, pi
+import math
+
 #from cmath import exp  
 from scipy.sparse import spdiags
 from pykrylov.linop import LinearOperator
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
 
-from pykrylov.linop import *
-from lsqmodel import LSQModel, LSQRModel
+
 
 
 
@@ -22,8 +26,8 @@ def arrayexp(n):
     x = range(n)
     ww = np.empty(len(x), complex)
     for j in range(len(x)):
-        ww[j] = (exp(-1j*x[j]*pi/(2*n))/sqrt(2*n))
-    ww[0] = ww[0]/sqrt(2)
+        ww[j] = (exp(-1j*x[j]*pi/(2*n))/math.sqrt(2*n))
+    ww[0] = ww[0]/math.sqrt(2)
     return np.array([ww],dtype=complex)
 
 def iarrayexp(n):
@@ -37,7 +41,7 @@ def iarrayexp(n):
     x = range(n)
     ww = np.empty(len(x), complex)
     for j in range(len(x)):
-        ww[j] = sqrt(2*n)*exp(1j*x[j]*pi/(2*n))
+        ww[j] = math.sqrt(2*n)*exp(1j*x[j]*pi/(2*n))
     return np.array([ww],dtype=complex)
 
 def dct1(a):
@@ -87,7 +91,7 @@ def idct1(b):
     #Compute weights to multiply DFT coefficients
     ww = iarrayexp(n)
     if n%2 == 1:
-        ww[0][0] = ww[0][0]*sqrt(2)
+        ww[0][0] = ww[0][0]*math.sqrt(2)
         wy = np.empty([n,m], complex)
         for j in range(m):
             wy[:,j]  = ww
@@ -99,7 +103,7 @@ def idct1(b):
         y = np.fft.ifft(yy,axis=0)
         a = y[:n,:]
     else:
-        ww[0][0] = ww[0][0]/sqrt(2)
+        ww[0][0] = ww[0][0]/math.sqrt(2)
         wy = np.empty([n,m], complex)
         for j in range(m):
             wy[:,j]  = ww
@@ -120,7 +124,7 @@ def dct(a):
     discrete cosine transform coefficients.
     """
     if len(a.shape)==1:
-        return (dct1(a))[0,:]
+        return (dct1(a))[:,0]#[0,:]
     return dct1(a)
 
 def idct(a):
@@ -130,7 +134,7 @@ def idct(a):
     discrete cosine transform coefficients.
     """
     if len(a.shape)==1:
-        return (idct1(a))[0,:]
+        return (idct1(a))[:,0]
     return idct1(a)
 ##
 ##    #idct1(idct1(a).T).T
@@ -141,98 +145,91 @@ def sign(x):
 
 
 def z_v(n,J,v):
-    z = np.zeros([n,1])
-    J_n = J[:n]
-    if  len(v.shape)==1:
-        v = v.reshape(v.shape[0],1) 
-    z[J_n] = v[J_n]
-    return z[:,0]
+    z = np.zeros([max(n,v.shape[0]),1])[:,0]
+    J_n = J[:v.shape[0]]
+    #if  len(v.shape)==1:
+        #v = v.reshape(v.shape[0],1)
+    z[J_n] = v
+    return z
+def ATx(m,n,x):
+    k = abs(m-n)
+    if n < m:
+        return np.concatenate((math.sqrt(2)/2*idct(x), zeros([1,k])[0,:]), axis=0)
+    else:
+        return math.sqrt(2)/2*idct(x[0:m])
 
-def partial_DCT(n = 10, m = 4, delta = 1.0e-05):
+def Ax(m,n,x):
+    #print m,n,'AX',x.size
+    k = abs(m-n)
+    if n < m:
+        x = np.concatenate((x, np.zeros(k)), axis=0)
+        return  math.sqrt(2)/2*dct(x)
+    else:
+        #print dct(x[0:m]),'dct'
+        return math.sqrt(2)/2*dct(x[0:m]) 
+
+def partial_DCT(p = 10, n = 4, delta = 1.0e-05):
     "n is signal dimension and m is number of measurements"
-    #n  signal dimension
-    #m  number of measurements
-    z = np.zeros([n,1])
+
     #J = np.random.permutation(range(n)) # m randomly chosen indices
-    J = np.array(range(n))
-    
-    # generate the m*n partial DCT matrix whose m rows are
-    # the rows of the n*n DCT matrix at the indices specified by J
-
-    A = LinearOperator(nargin=m, nargout=n, matvec=lambda v: dct(v),
-                       matvec_transp=lambda v: idct(z_v(n,J,v)))
-
-    # spiky signal generation
-    T = min(m,n)-1 # number of spikes
-    x0 = np.zeros([n,1]);
-    q = np.random.permutation(range(n)) #or s=list(range(5)) random.shuffle(s)
-    x0[q[0:T]]= np.sign(np.random.rand(T,1))
-    #x0[J[0:T]] = np.sign(np.reshape(np.arange(1,T+1),(T,1)))
-    # noisy observations
-    sigma = 0.01  # noise standard deviation
-    y = x0  #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
-
-    Q = A
-    p = n; n = m
-    y = sprandvec(p,30)
+    J = np.array(range(p))    
+    # generate the n*m partial DCT matrix whose n rows are
+    # the rows of the m*m DCT matrix at the indices specified by J
+    Q = LinearOperator(nargin=n, nargout=p, matvec=lambda v: Ax(p,n,v),
+                           matvec_transp=lambda v: ATx(n,p,v))
+    eps = 0.001
+    y = eps*np.ones(Q.shape[1])
     d = Q*y
-    d = np.array(d)[:,0]
-    c = np.zeros(n)
+    if len(d.shape)>1:
+        d = d[:,0]
+    p, n = Q.shape
+    
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
+
     uvar = np.ones(2*n)*inf
     lvar = -np.ones(2*n)*inf
+    #lvar[0:n] = np.zeros(n)
 
     I = IdentityOperator(n, symmetric=True)
     # Build [ I  -I]
     #       [-I  -I]
     B = BlockLinearOperator([[I, -I], [-I]], symmetric=True)
-
+    
     Q_ = ZeroOperator(n,p)
-    new_Q = BlockLinearOperator([[Q,Q_]])
-    p, n = new_Q.shape
+    new_Q = LinearOperator(nargin=2*n, nargout=p, matvec=lambda v: Ax(p,n,v),
+                               matvec_transp=lambda v: ATx(n,p,v)) 
     m, n = B.shape
-    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
+    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls_RANDOM'
     lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
                     Uvar=uvar, name=name)
     return lsqpr
 
-def DCT(n = 10, m = 4, delta = 1.0e-05):
+
+def Random(n = 10, m = 4, delta = 1.0e-05):
     from toolslsq import as_llmat
     "n is signal dimension and m is number of measurements"
-    #n  signal dimension
-    #m  number of measurements
-    z = np.zeros([n,1])
-    J = np.random.permutation(range(n)) # m randomly chosen indices
-    J = np.array(range(n))
+    np.random.seed(1919)
     
-    # generate the m*n partial DCT matrix whose m rows are
-    # the rows of the n*n DCT matrix at the indices specified by J
-
-    Q = sp(matrix=as_llmat(np.random.rand(n,m)))
+    Q = sp(matrix=as_llmat(np.random.random((m,n)).T))
+    #Q = sp(matrix=as_llmat(np.random.rand(n,m)))
     Q = PysparseLinearOperator(Q)
-
-    # spiky signal generation
-    T = min(m,n)-1 # number of spikes
-    x0 = np.zeros([n,1]);
-    q = np.random.permutation(range(n)) #or s=list(range(5)) random.shuffle(s)
-    x0[q[0:T]]= np.sign(np.random.rand(T,1))
-    #x0[J[0:T]] = np.sign(np.reshape(np.arange(1,T+1),(T,1)))
-    # noisy observations
-    sigma = 0.01  # noise standard deviation
-    y = x0  #+ sigma*np.reshape(np.arange(1,m+1),(m,1))
-
+    eps = 0.1
+    y = eps*np.ones([m,1])
+    y = np.ones([m,1])
+    #y = sprandvec(m,45)
+    
+    d = np.array(Q*y[:,0])
     p = n; n = m
-    y = sprandvec(n,30)
-    d = Q*y[:,0]
-    d = np.array(d) 
-    c = np.zeros(n)
+    
     c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
+
     uvar = np.ones(2*n)*inf
     lvar = -np.ones(2*n)*inf
+    #lvar[0:n] = np.zeros(n)
 
     I = IdentityOperator(n, symmetric=True)
     # Build [ I  -I]
@@ -243,10 +240,11 @@ def DCT(n = 10, m = 4, delta = 1.0e-05):
     new_Q = BlockLinearOperator([[Q,Q_]])
     p, n = new_Q.shape
     m, n = B.shape
-    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls'
+    name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls_RANDOM'
     lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
                     Uvar=uvar, name=name)
     return lsqpr
+
 
 
 def sprandvec(m,n):
@@ -272,8 +270,66 @@ if __name__ == "__main__":
     from toolslsq import *
     from pykrylov.linop import LinearOperator
     from pykrylov.linop import *
-    partial_DCT(n = 2, m = 3, delta = 1.0e-05)
-    DCT(n = 3, m = 2, delta = 1.0e-05)
+    n=8;p=3
+    Q = LinearOperator(nargin=n, nargout=p, matvec=lambda v: Ax(p,n,v),
+                           matvec_transp=lambda v: ATx(n,p,v))
+    
+    print np.identity(Q.shape[1])[0,:]
+    print Q.shape
+    print dct(np.identity(Q.shape[1])[0,:])
+    
+    print Q.T*np.identity(Q.shape[0])[:,0]
+    
+    #m=16;n=9;p=19;q=36
+    
+    
+    #A = LinearOperator(nargin=n, nargout=m, matvec=lambda v: Ax(m,n,v), 
+                       #matvec_transp=lambda v: np.concatenate((v, np.zeros(5))))
+    
+    ##B = LinearOperator(nargin=p, nargout=m, matvec=lambda v: Ax(n,m,v),
+                       ##matvec_transp=lambda v: np.concatenate((v, np.zeros(5))))
+    
+    #B = LinearOperator(nargin=p, nargout=m, matvec=lambda v: np.random.rand(m),#Ax(m,p,v),
+                               #matvec_transp=lambda v: ATx(m,p,v))
+    
+    #C = LinearOperator(nargin=n, nargout=q, matvec=lambda v: Ax(q,n,v),
+                       #matvec_transp=lambda v: np.concatenate((v, np.zeros(5))))
+    
+    #D = LinearOperator(nargin=p, nargout=q, matvec=lambda v: Ax(q,p,v),
+                       #matvec_transp=lambda v: np.concatenate((v, np.zeros(p))))
+    
+    
+    
+    #print "A",A.shape,      "B",B.shape
+    ##print A.to_array()
+    #print 
+    ##print B.to_array()
+    #print "C",C.shape,      " D",D.shape
+    ##print C.to_array()
+    #print 
+    ##print D.to_array()
+    
+    ## Build [A  B]
+    ##       [C  D]
+    #K2 = BlockLinearOperator([[A, B], [C, D]])
+    
+    #x = np.ones(K2.shape[1])
+    #K2x = K2 * x    
+    
+    
+    
+    
+    
+    
+    
+    
+    ##Q = LinearOperator(nargin=m, nargout=n, matvec=lambda v: Ax(n,m,v),
+                               ##matvec_transp=lambda v: ATx(m,n,v))  
+    #n=16;m=4
+    ##print sprandvec(m,n)
+    #obj = partial_DCT(n, m, delta = 1.0e-05)
+    ###DCT(n = 3, m = 2, delta = 1.0e-05)
+    ##obj.Q
     
 ##    X = 10 * np.random.rand(2600,3400)
 ##    X = np.array([[0.2867,0.8133,0.2936],[0.9721,0.7958,0.3033],

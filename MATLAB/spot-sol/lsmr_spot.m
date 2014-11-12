@@ -144,7 +144,9 @@ function [x, flags, stats] = lsmr_spot(A, b, opts)
 
   % Initialize.
   [m, n] = size(A);
-  minDim = min([m n]);
+  m = opts.m;
+  n = opts.n;
+  minDim = min(m, n);
 
   % Retrieve input arguments.
   lambda = 0;
@@ -244,7 +246,8 @@ function [x, flags, stats] = lsmr_spot(A, b, opts)
     Mu = Mu/beta;
   end
 
-  Nv = A' * u;
+  %Nv = A' * u;
+  Nv = A( 2, m, n, u );
   v  = N * Nv;
 
   if show
@@ -342,7 +345,8 @@ function [x, flags, stats] = lsmr_spot(A, b, opts)
     %      beta*M*u  =  A*v  - alpha*M*u,
     %      alpha*N*v  =  A'*u - beta*N*v.
 
-    Mu = A*v    - alpha * Mu;
+    %Mu = A*v    - alpha * Mu;
+    Mu = A( 1, m, n, v ) - alpha * Mu;
     u  = M * Mu;
     beta = realsqrt(dot(u, Mu));
 
@@ -352,7 +356,8 @@ function [x, flags, stats] = lsmr_spot(A, b, opts)
       if localOrtho
         localVEnqueue(v);    % Store old v for local reorthogonalization of new v.
       end
-      Nv = A' * u - beta * Nv;
+      %Nv = A' * u - beta * Nv;
+      Nv = A( 2, m, n, u )- beta * Nv;
       v  = N * Nv;
 
       if localOrtho

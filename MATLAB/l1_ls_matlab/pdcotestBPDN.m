@@ -1,7 +1,7 @@
-function pdcotestBPDN()% m,n,k,lambda )
+function pdcotestBPDN( m,n,k)
 clc
 
- m=1500;  n=3000;  k = 4;  lambda=1e-3; % pdcotestBPDN( m,n,k,lambda );
+  % pdcotestBPDN( m,n,k,lambda );
 % Generates a random m by n basis pursuit denoising problem (BPDN)
 % with k non zeros in the optimal solution, and treats the constraint matrix
 % A as an operator.  (We need k <= n.)
@@ -32,7 +32,7 @@ clc
      lambda = 1e-3;
   end
 
-  [A,b,bl,bu,c,d1,d2,J,x_Sol] = toydata( m,n,k,lambda ); % Private function below
+  [A,b,bl,bu,c,d1,d2] = toydata( m,n,k,lambda ); % Private function below
   
   options = pdcoSet;
 
@@ -64,7 +64,7 @@ clc
 %-----------------------------------------------------------------------
 end
 
-function [Qop,b,bl,bu,c,d1,d2,J,x0] = toydata( m,n,k,lambda )
+function [A,y,bl,bu,c,d1,d2,J,x0] = toydata( m,n,k,lambda )
 
 %        [Aop,b,bl,bu,c,d1,d2] = toydata( m,n,k,lambda );
 % defines an m by n matrix A, rhs vector b, and scalar lambda
@@ -79,29 +79,17 @@ function [Qop,b,bl,bu,c,d1,d2,J,x0] = toydata( m,n,k,lambda )
 %-----------------------------------------------------------------------
 
  % spiky signal generation
- T = 10; % number of spikes
- x0 = zeros(n,1);
- q = randperm(n);
- x0(q(1:T)) = sign(randn(T,1));
- J = q(1:T);
-
- % noisy observations
- sigma = 0.01; % noise standard deviation
- %x0 = sprandvec(m,sparse);
- Q = dct(rand(m,n));
- b = Q*x0 ;%+ sigma*randn(m,1);
-
+[A,y] = PDCO_partialDCT( m,n );
 
 
 
   % Put the data into the format that PDCO understands
-  Qop     = @(mode,m,n,x) operatorA(mode,x,Q);
   c       =  ones(2*n,1)*lambda;
   bl      = zeros(2*n,1);     % x > 0
   bu      =   inf(2*n,1);
   d1      = 1e-10;            % Primal regularization
   d2      = 1;                % Make it a regularized least squares problem
-%-----------------------------------------------------------------------
+%----------------------------------------------------------------------------------
 % end private function toydata
 %-----------------------------------------------------------------------
 

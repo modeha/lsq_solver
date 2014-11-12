@@ -5,7 +5,6 @@
 # M.Dehghani, Montreal  2012.
 
 from pykrylov.linop import *
-from nlpy.krylov import SimpleLinearOperator, ReducedLinearOperator, SymmetricallyReducedLinearOperator
 from nlpy.model.nlp import NLPModel
 from pysparse.sparse.pysparseMatrix import PysparseMatrix as sp
 from pysparse.sparse import PysparseIdentityMatrix as eye
@@ -187,7 +186,7 @@ class LSQRModel(LSQModel):
         return p
     
     def jac(self, x, **kwargs):
-        return SimpleLinearOperator(self.n, self.m, symmetric=False,
+        return LinearOperator(self.n, self.m, symmetric=False,
                          matvec=lambda u: self.jprod(x,u,**kwargs),
                          matvec_transp=lambda u: self.jtprod(x,u,**kwargs))
     # Evaluate matrix-vector product between
@@ -196,5 +195,14 @@ class LSQRModel(LSQModel):
         return v
     
     def hess(self, x, z, **kwargs):
-        return SimpleLinearOperator(self.nx+self.nr, self.nx+self.nr, symmetric=True,
+        return LinearOperator(self.nx+self.nr, self.nx+self.nr, symmetric=True,
                          matvec=lambda u: self.hprod(x,z,u,**kwargs))
+if __name__ == "__main__":
+        from toolslsq import *
+        from pykrylov.linop import LinearOperator
+        from pykrylov.linop import *
+        from dctt import *
+        obj = partial_DCT(n = 2, m = 3, delta = 1.0e-05)
+        print obj.cons(obj.x0)
+        print obj.obj(obj.x0)
+        #Random(n = 3, m = 2, delta = 1.0e-05)

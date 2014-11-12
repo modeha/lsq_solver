@@ -1,4 +1,4 @@
-function [x,status,history] = l1_ls_nonneg(A,varargin)
+function [ntiter,opt,gap,x,history] = l1_ls_nonneg(A,varargin)
 %
 % l1-Regularized Least Squares Problem Solver
 %
@@ -63,7 +63,7 @@ function [x,status,history] = l1_ls_nonneg(A,varargin)
 
 % IPM PARAMETERS
 MU              = 2;        % updating parameter of t
-MAX_NT_ITER     = 400;      % maximum IPM (Newton) iteration
+MAX_NT_ITER     = 10000;      % maximum IPM (Newton) iteration
 
 % LINE SEARCH PARAMETERS
 ALPHA           = 0.01;     % minimum fraction of decrease in the objective
@@ -97,7 +97,7 @@ end
 
 % VARIABLE ARGUMENT HANDLING
 t0         = min(max(1,1/lambda),n/1e-3);
-defaults   = {1e-3,false,1e-3,5000,ones(n,1),t0};
+defaults   = {1e-6,false,1e-6,5000,ones(n,1),t0};
 given_args = ~cellfun('isempty',varargin);
 defaults(given_args) = varargin(given_args);
 [reltol,quiet,eta,pcgmaxi,x,t] = deal(defaults{:});
@@ -125,8 +125,9 @@ if (~quiet) disp(sprintf('%5s %9s %15s %15s %13s %11s',...
 %------------------------------------------------------------
 
 for ntiter = 0:MAX_NT_ITER
-    
+
     z = A*x-y;
+  
     
     %------------------------------------------------------------
     %       CALCULATE DUALITY GAP
@@ -141,6 +142,7 @@ for ntiter = 0:MAX_NT_ITER
     pobj  =  z'*z+lambda*sum(x,1);
     dobj  =  max(-0.25*nu'*nu-nu'*y,dobj);
     gap   =  pobj - dobj;
+    opt = min(pobj,dobj);
 
     pobjs = [pobjs pobj]; dobjs = [dobjs dobj]; sts = [sts s];
     pflgs = [pflgs pflg]; pitrs = [pitrs pitr];
@@ -151,7 +153,7 @@ for ntiter = 0:MAX_NT_ITER
     if (~quiet) disp(sprintf('%4d %12.2e %15.5e %15.5e %11.1e %8d',...
         ntiter, gap, pobj, dobj, s, pitr)); end
 
-    if (gap/abs(dobj) < reltol) 
+    if (gap/abs(dobj) < min([reltol,pobj,dobj]))
         status  = 'Solved';
         history = [pobjs-dobjs; pobjs; dobjs; sts; pitrs; pflgs];
         if (~quiet) disp('Absolute tolerance reached.'); end

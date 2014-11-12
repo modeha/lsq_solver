@@ -51,11 +51,12 @@ for i=1:1
   x0    = 0.5*ones(n,1);     % Initial x
   y0    = zeros(m,1);        % Initial y
   z0    = ones(n,1);         % Initial z
-  xsize = 1;                 % Estimate of norm(x,inf) at solution
+  xsize = norm(x0,inf);                 % Estimate of norm(x,inf) at solution
   zsize = 1;                 % Estimate of norm(z,inf) at solution
+  zsize = max(normest(A*A')+sqrt(n)*Anorm,1);
 
   options.mu0       = 1e-0;  % An absolute value
-  options.LSMRatol1 = 1e-4;  % For LPs, LSQR must solve quite accurately
+  options.LSMRatol1 = 1e-6;  % For LPs, LSQR must solve quite accurately
   options.wait      = 0;     % Allow options to be reviewed before solve
   options.Method    = 3;  % Will change to 1 or 3
  

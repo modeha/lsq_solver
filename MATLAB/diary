@@ -1,0 +1,11 @@
+lambda_max: 0.599349 condition Number of A: 1.000000
+
+Solving a problem of size (m=2, n=1), with lambda=5.99349e-01
+-----------------------------------------------------------------------------
+ iter       gap         primobj         dualobj      step len   pcg iters
+   0     3.43e-01     8.34238e-01     4.91700e-01         Inf        0
+   1     7.52e-03     4.99219e-01     4.91700e-01     1.0e+00        1
+   2     8.56e-03     5.00257e-01     4.91700e-01     1.0e+00        2
+   3     5.56e-03     4.97264e-01     4.91700e-01     5.0e-01        2
+   4     2.72e-03     4.94422e-01     4.91700e-01     5.0e-01        2
+Absolute tolerance reached.
