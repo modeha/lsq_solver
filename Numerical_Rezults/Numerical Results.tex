@@ -1,0 +1,156 @@
+\documentclass[letterpaper,12pt,oneside,final]{book}
+ \usepackage[english,french]{babel}
+ \usepackage[latin1]{inputenc}
+\usepackage{tikz}
+\usetikzlibrary{trees}
+\usepackage{verbatim}
+\usepackage{tikz}
+\usepackage{listings}
+
+   
+\begin{document}
+
+\begin{table}
+\caption{Comparison Solver {\bf LSQ}  for  The Pseudorandom Number Generator {\bf PRNG}) with $m=2^{t-1}$ and $n=2^{t}$}  
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$m\--n$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+\hline
+2--4           &5    &4.0e-13        &1.1e-07        &0.22           &86   \\ 
+8--16          &5    &6.8e-13        &4.5e-08        &0.78           &293  \\ 
+16--32         &5    &4.3e-11        &9.5e-07        &1.30           &461  \\ 
+32--64         &5    &2.3e-11        &6.5e-07        &1.75           &601  \\ 
+64--128        &5    &2.0e-11        &1.7e-07        &2.74           &800  \\ 
+128--256       &5    &2.6e-11        &1.4e-07        &4.65           &929  \\ 
+256--512       &4    &5.5e-09        &6.4e-07        &5.03           &676  \\ 
+512--1024      &4    &7.7e-10        &2.6e-07        &18.11          &785  \\ 
+1024--2048     &4    &3.1e-09        &3.2e-07        &41.70          &789  \\ 
+2048--4096     &4    &3.0e-07        &9.1e-07        &128.96         &824  \\  
+4096--8192     &3    &5.0e-07        &2.2e-06        &358.61         &667  \\ 
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\caption{Comparison Solver {\bf LSQ}  for  The Discrete Cosine Transform {\bf DCT} Problem with $m=2^{t-1}$ and $n=2^{t}$}  
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$m\--n$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+\hline
+2--4           &4    &7.7e-15        &1.5e-08        &0.11           &30   \\ 
+8--16          &4    &3.1e-14        &1.5e-08        &0.12           &30   \\ 
+16--32         &4    &6.2e-14        &1.5e-08        &0.14           &30   \\ 
+32--64         &4    &1.2e-13        &1.5e-08        &0.16           &29   \\ 
+64--128        &4    &2.5e-13        &1.5e-08        &0.22           &30   \\ 
+128--256       &4    &4.9e-13        &1.5e-08        &0.31           &30   \\ 
+256--512       &4    &9.9e-13        &1.5e-08        &0.56           &32   \\ 
+512--1024      &4    &2.0e-12        &1.5e-08        &0.89           &31   \\ 
+1024--2048     &4    &3.9e-12        &1.5e-08        &1.68           &33   \\ 
+2048--4096     &4    &7.9e-12        &1.5e-08        &3.69           &33   \\ 
+4096--8192     &4    &1.6e-11        &1.5e-08        &6.75           &33   \\ 
+8192--16384    &4    &3.2e-11        &1.5e-08        &12.85          &34   \\ 
+16384--32768   &4    &6.3e-11        &1.5e-08        &25.86          &33   \\ 
+32768--65536   &4    &1.3e-10        &1.5e-08        &57.65          &35   \\ 
+65536--131072  &4    &2.5e-10        &1.4e-08        &109.37         &34   \\ 
+131072--262144 &4    &5.0e-10        &1.4e-08        &237.20         &35   \\ 
+262144--524288 &4    &1.0e-09        &1.3e-08        &495.53         &36   \\ 
+524288--1048576&4    &2.0e-09        &1.2e-08        &1098.79        &36   \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\caption{Comparison Solver  {\bf l1--ls} for  The  Pseudorandom Number Generator {\bf PRNG} with $m=2^{t-1}$ and $n=2^{t}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$m\--n$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{PCG--iter} \\ 
+\hline
+2--4    &35    &6.89e-08    &5.58e-14    &0.12    &73 \\
+8--16    &42    &7.03e-08    &4.58e-14    &0.35    &334\\ 
+16--32    &43    &7.05e-08    &6.86e-14    &0.52    &582\\ 
+32--64    &47    &7.06e-08    &5.51e-14    &0.70    &787 \\
+64--128    &54    &7.07e-08    &5.36e-14    &0.92    &880 \\
+128--256    &94    &7.07e-08    &4.96e-14    &2.44    &1487\\ 
+256--512    &193    &7.07e-08    &6.91e-14    &7.77    &6401\\ 
+512--1024    &499    &7.07e-08    &7.01e-14    &75.83    &71185\\ 
+1024--2048    &2632     &7.07e-23    &4.73e-29    &4628.07    &1726014\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\begin{table}
+\caption{Comparison Solver  {\bf l1--ls}  for  The Discrete Cosine Transform {\bf DCT} Problem with  $m=2^{t-1}$ and $n=2^{t}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$m\--n$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{PCG--iter} \\ 
+\hline
+
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\caption{Comparison Solver   {\bf PDCO} for  A Pseudorandom Number Generator {\bf PRNG } Using {\bf LSMR} with  $m=2^{t-1}$ and $n=2^{t}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+%n--m Iter RelResidual obj time nnz0 nnz Solver
+Size-$m\--n$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+\hline
+2--4 &16& 7.77e-08& 3.93e-09& 0.31& 155 \\ 
+8--16 &16& 7.78e-07& 4.37e-09& 0.53& 261 \\ 
+16--32 &17& 1.57e-06& 2.16e-09& 0.78& 320 \\ 
+32--64 &17& 3.31e-06& 2.29e-09& 1.03& 346 \\ 
+64--128 &17& 7.20e-06& 5.02e-09& 0.95& 357 \\ 
+128--256 &18& 1.37e-05& 2.52e-09& 2.31& 473 \\ 
+256--512 &19& 2.87e-05& 4.27e-09& 3.37& 506 \\ 
+512--1024 &20& 5.37e-05& 1.41e-09& 11.55& 683 \\ 
+1024--2048 &21& 1.07e-04& 1.23e-09& 49.03& 775 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}
+\caption{Comparison Solver  {\bf PDCO}  for  The Discrete Cosine Transform {\bf DCT} Problem Using {\bf LSMR} with $m=2^{t-1}$ and $n=2^{t}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$m\--n$& \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost} & \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\
+\hline
+2--4 &34& 2.59e-07& 1.08e-10& 2.66& 169 \\ 
+8--16 &34& 1.04e-06& 1.08e-10& 2.76& 169 \\ 
+16--32 &32& 2.24e-06& 2.72e-10& 2.76& 161 \\  
+32--64 &35& 4.26e-06& 2.66e-10& 3.07& 208 \\ 
+64--128 &36& 8.42e-06& 6.72e-09& 3.59& 215 \\ 
+128--256 &40& 1.71e-05& 6.87e-09& 3.61& 241 \\ 
+256--512 &37& 3.91e-05& 1.78e-09& 3.35& 259 \\ 
+512--1024 &40& 7.20e-05& 2.08e-09& 6.34& 319 \\ 
+1024--2048 &44& 1.32e-04& 1.45e-09& 12.98& 358 \\ 
+8192--16384 &46& 1.16e-03& 2.09e-12& 74.91& 456 \\ 
+16384--32768 &49& 2.17e-03& 1.00e-12& 161.27& 484 \\ 
+32768--65536 &49& 4.50e-03& 4.31e-12& 351.02& 490 \\ 
+65536--131072 &51& 9.15e-03& 2.26e-11& 901.78& 546 \\ 
+131072--262144 &55& 1.70e-02& 4.75e-11& 2464.49& 598 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\end{document}
+
+
+
+%\documentclass{article}
+%\usepackage{booktabs}
+%\begin{document}
+%\begin{tabular}{lccccccc}
+%\toprule
+%\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+%Tack & (a) & (b) & (c) & (a) & (b) & (c) & diff\\
+%\midrule
+%Foo & 1 & 2 & 3 & A & B & C & $+$\\
+%Bar & 1 & 2 & 3 & A & B & C & $+$\\
+%\bottomrule
+%\end{tabular}

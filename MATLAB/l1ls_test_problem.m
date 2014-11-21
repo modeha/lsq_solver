@@ -7,7 +7,7 @@ if strcmp(test_problem,'random')
     A = rand(n,m);
     At = A';
     I = eye(m);
-    epsilon = 0.1;
+    epsilon = 0.001;
     d = epsilon*I(:,1);%ones(m,1);
     y = sqrt(2)/2*(A*d);
     lambda = 1.0000e-19; % regularization parameter

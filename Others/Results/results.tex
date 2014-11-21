@@ -1,0 +1,232 @@
+\documentclass[letterpaper,12pt,oneside,final]{book}
+ \usepackage[english,french]{babel}
+ \usepackage[latin1]{inputenc}
+\usepackage{tikz}
+\usetikzlibrary{trees}
+\usepackage{verbatim}
+\usepackage{tikz}
+\usepackage{listings}
+
+   
+\begin{document}
+
+
+
+%\begin{table}
+%\caption{Comparison Solver {\bf LSQ} Using  Use the {\bf predictor-corrector} method  for  A pseudorandom number generator {\bf PRNG} with $n=2^{t}$ and $m=2^{t-1}$}  
+%\begin{center}
+%\begin{tabular}{|*{6}{c}|} \hline
+%Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+%\hline
+%2--4 &      5    &       1.209816e-16&   3.481604e-09&   0.427&   166  \\       
+%8--16&      5    &       3.364912e-14&   6.388977e-08&   1.473&   563  \\       
+%16--32&      5    &       5.229931e-14&   5.133424e-08&   2.308&   869  \\       
+%32--64&      5    &       7.947469e-13&   3.255286e-07&   3.551&   1234 \\       
+%64--128&      5    &       9.338045e-11&   2.097275e-07&   5.613&   1596 \\       
+%128--256&      4    &       1.360190e-11&   5.048331e-07&   6.881&   1462 \\       
+%256--512&      4    &       3.254787e-09&   6.913052e-07&   11.209&   1393 \\       
+%512--1024&      4    &       9.882078e-09&   5.467720e-07&   27.376&   1456 \\       
+%1024--2048&      4    &       2.895092e-08&   5.114735e-07&   74.541&   1455 \\       
+%2048--4096&      4    &       5.655925e-07&   9.858855e-07&   274.239&   1608 \\
+%
+%
+%\hline
+%\end{tabular}
+%\end{center}
+%\end{table}
+
+
+
+
+\begin{table}
+\caption{Comparison Solver {\bf LSQ} Using  {\bf Long-step} strategy for  A pseudorandom number generator {\bf PRNG}) with $n=2^{t}$ and $m=2^{t-1}$}  
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+\hline
+2--4 &      5    &       1.838380e-13&   7.814328e-08&   0.323&   86   \\       
+8--16&      5    &       1.995617e-12&   4.728493e-07&   0.665&   283  \\       
+16--32&      5    &       4.293489e-11&   9.533137e-07&   1.245&   461  \\       
+32--64&      5    &       2.344321e-11&   6.524956e-07&   1.662&   601  \\       
+64--128&      5    &       2.018124e-11&   1.682649e-07&   2.674&   800  \\       
+128--256&      5    &       2.625992e-11&   1.443518e-07&   4.102&   929  \\       
+256--512&      4    &       5.452512e-09&   6.370349e-07&   4.894&   676  \\       
+512--1024&      5    &       5.347547e-08&   2.287316e-06&   17.057&   942  \\       
+512--1024&      6    &       5.685019e-08&   2.257329e-06&   22.521&   1229 \\       
+512--1024&      4    &       1.716336e-08&   2.522282e-06&   10.658&   635  \\       
+1024--2048&      3    &       7.664971e-07&   8.141327e-06&   22.887&   518  \\       
+2048--4096&      3    &       8.532705e-06&   6.777635e-06&   85.456&   574  \\ 
+
+
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+
+\begin{table}
+\caption{Comparison Solver {\bf LSQ} Using  {\bf Long-step} strategy for  The discrete cosine transform {\bf DCT} with $n=2^{t}$ and $m=2^{t-1}$}  
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+%n--m Iter RelResidual obj time nnz0 nnz Solver
+Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+\hline
+
+8--16&      4    &       3.081844e-14&   1.545146e-08&   0.174&   29   \\       
+16--32&      4    &       6.163850e-14&   1.544543e-08&   0.158&   30   \\       
+32--64&      4    &       1.232759e-13&   1.543692e-08&   0.153&   29   \\       
+64--128&      4    &       2.465748e-13&   1.542490e-08&   0.207&   30   \\       
+128--256&      4    &       4.931225e-13&   1.540792e-08&   0.311&   30   \\       
+256--512&      4    &       9.861881e-13&   1.538397e-08&   0.571&   32   \\       
+512--1024&      4    &       1.972376e-12&   1.535024e-08&   0.919&   31   \\       
+1024--2048&      4    &       3.944753e-12&   1.530279e-08&   1.960&   33   \\       
+2048--4096&      4    &       7.889504e-12&   1.523619e-08&   3.420&   33   \\       
+4096--8192&      4    &       1.577901e-11&   1.514297e-08&   6.743&   33   \\       
+8192--16384&      4    &       3.155801e-11&   1.501308e-08&   13.223&   34   \\       
+16384--32768&      4    &       6.311603e-11&   1.483314e-08&   25.880&   33   \\       
+32768--65536&      4    &       1.262321e-10&   1.458591e-08&   57.420&   35   \\       
+65536--131072&      4    &       2.524636e-10&   1.425002e-08&   110.057&   34   \\
+131072--262144&      4    &       5.049279e-10&   1.380058e-08&   227.893&   35   \\
+262144--524288&      4    &       1.009853e-09&   1.321129e-08&   454.959&   36   \\
+524288--1048576&      4    &       2.019701e-09&   1.245894e-08&   991.349&   36   \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+%
+%\begin{table}
+%\caption{Comparison Solver {\bf LSQ} Using  Use the {\bf predictor-corrector} method  for  The discrete cosine transform {\bf DCT} with $n=2^{t}$ and $m=2^{t-1}$}  
+%\begin{center}
+%\begin{tabular}{|*{6}{c}|} \hline
+%%n--m Iter RelResidual obj time nnz0 nnz Solver
+%Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+%\hline
+%
+%8--16&      4    &       1.225371e-14&   6.853823e-09&   0.230&   57   \\       
+%16--32&      4    &       2.450690e-14&   6.843860e-09&   0.254&   56   \\       
+%32--64&      4    &       4.901460e-14&   6.842891e-09&   0.342&   58   \\       
+%64--128&      4    &       9.803094e-14&   6.834031e-09&   0.421&   60   \\       
+%128--256&      4    &       1.960401e-13&   6.851910e-09&   0.662&   60   \\       
+%256--512&      4    &       3.921240e-13&   6.833313e-09&   1.034&   61   \\       
+%512--1024&      4    &       7.841800e-13&   6.851119e-09&   2.110&   63   \\       
+%1024--2048&      4    &       1.568493e-12&   6.845251e-09&   3.633&   64   \\       
+%2048--4096&      4    &       3.136985e-12&   6.845051e-09&   6.757&   64   \\       
+%4096--8192&      4    &       6.273971e-12&   6.844190e-09&   13.264&   65   \\       
+%8192--16384&      4    &       1.254792e-11&   6.844055e-09&   25.481&   64   \\       
+%16384--32768&      4    &       2.509587e-11&   6.845876e-09&   55.819&   65   \\       
+%32768--65536&      4    &       5.019165e-11&   6.842225e-09&   106.499&   66   \\       
+%65536--131072&      4    &       1.003829e-10&   6.849537e-09&   224.791&   67   \\
+%
+%\hline
+%\end{tabular}
+%\end{center}
+%\end{table}
+
+\begin{table}
+\caption{Comparison Solver  {\bf l1--ls} for  A pseudorandom number generator {\bf PRNG} with $n=2^{t}$ and $m=2^{t-1}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+%n--m Iter RelResidual obj time nnz0 nnz Solver
+Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{PCG--iter} \\ 
+\hline
+2--4    &35    &6.89e-08    &5.58e-14    &0.18    &70 \\
+8--16    &42    &7.03e-08    &4.59e-14    &0.54    &301 \\
+16--32    &44    &7.05e-08    &5.64e-14    &0.62    &376 \\
+32--64    &47    &7.06e-08    &5.51e-14    &0.65    &371 \\
+64--128    &53    &7.07e-08    &5.37e-14    &0.72    &377 \\
+128--256    &57    &7.07e-08    &4.97e-14    &1.03    &447 \\
+256--512    &60    &7.07e-08    &6.91e-14    &1.76    &472 \\
+512--1024    &64    &7.07e-08    &7.00e-14    &3.00    &546 \\
+1024--2048    &74    &7.07e-08    &7.06e-14    &5.87    &617 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\begin{table}
+\caption{Comparison Solver  {\bf l1--ls}  for  The discrete cosine transform {\bf DCT} problem with  $n=2^{t}$ and $m=2^{t-1}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{PCG--iter} \\ 
+\hline
+2--4    &43    &1.41e-09    &6.79e-16    &0.99    &43 \\
+8--16    &41    &5.65e-09    &2.72e-15    &0.98    &41 \\
+16--32    &37    &1.13e-08    &1.46e-14    &0.83    &37 \\
+32--64    &38    &2.26e-08    &7.28e-15    &0.88    &38 \\
+64--128    &38    &4.52e-08    &6.31e-14    &0.84    &38 \\
+128--256    &36    &9.04e-08    &1.15e-13    &0.81    &36 \\
+256--512    &34    &1.81e-07    &4.35e-13    &0.93    &34 \\
+512--1024    &30    &3.62e-07    &1.86e-12    &0.70    &30 \\
+1024--2048    &32    &7.24e-07    &1.88e-12    &0.92    &32 \\
+8192--16384    &32    &5.79e-06    &6.29e-11    &1.84    &32 \\
+16384--32768    &29    &1.16e-05    &1.14e-10    &1.86    &29 \\
+32768--65536    &29    &2.32e-05    &1.83e-10    &2.60    &29 \\
+65536--131072    &31    &4.63e-05    &6.10e-11    &4.37    &31 \\
+131072--262144    &31    &9.26e-05    &1.22e-10    &9.33    &31 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\caption{Comparison Solver   {\bf PDCO} for  A pseudorandom number generator {\bf PRNG } using {\bf LSMR} with  $n=2^{t}$ and $m=2^{t-1}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+%n--m Iter RelResidual obj time nnz0 nnz Solver
+Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost}& \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\ 
+\hline
+2--4 &16& 7.77e-08& 3.93e-09& 0.31& 155 \\ 
+8--16 &16& 7.78e-07& 4.37e-09& 0.53& 261 \\ 
+16--32 &17& 1.57e-06& 2.16e-09& 0.78& 320 \\ 
+32--64 &17& 3.31e-06& 2.29e-09& 1.03& 346 \\ 
+64--128 &17& 7.20e-06& 5.02e-09& 0.95& 357 \\ 
+128--256 &18& 1.37e-05& 2.52e-09& 2.31& 473 \\ 
+256--512 &19& 2.87e-05& 4.27e-09& 3.37& 506 \\ 
+512--1024 &20& 5.37e-05& 1.41e-09& 11.55& 683 \\ 
+1024--2048 &21& 1.07e-04& 1.23e-09& 49.03& 775 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}
+\caption{Comparison Solver  {\bf PDCO}  for  The discrete cosine transform {\bf DCT} problem using {\bf LSMR} with $n=2^{t}$ and $m=2^{t-1}$} 
+\begin{center}
+\begin{tabular}{|*{6}{c}|} \hline
+Size-$n\--m$ & \multicolumn{1}{c}{Iter} & \multicolumn{1}{c}{Cost} & \multicolumn{1}{c}{KKTresidual} & \multicolumn{1}{c}{Time} & \multicolumn{1}{c|}{Niter--lsmr} \\
+\hline
+2--4 &34& 2.59e-07& 1.08e-10& 2.66& 169 \\ 
+8--16 &34& 1.04e-06& 1.08e-10& 2.76& 169 \\ 
+16--32 &32& 2.24e-06& 2.72e-10& 2.76& 161 \\  
+32--64 &35& 4.26e-06& 2.66e-10& 3.07& 208 \\ 
+64--128 &36& 8.42e-06& 6.72e-09& 3.59& 215 \\ 
+128--256 &40& 1.71e-05& 6.87e-09& 3.61& 241 \\ 
+256--512 &37& 3.91e-05& 1.78e-09& 3.35& 259 \\ 
+512--1024 &40& 7.20e-05& 2.08e-09& 6.34& 319 \\ 
+1024--2048 &44& 1.32e-04& 1.45e-09& 12.98& 358 \\ 
+8192--16384 &46& 1.16e-03& 2.09e-12& 74.91& 456 \\ 
+16384--32768 &49& 2.17e-03& 1.00e-12& 161.27& 484 \\ 
+32768--65536 &49& 4.50e-03& 4.31e-12& 351.02& 490 \\ 
+65536--131072 &51& 9.15e-03& 2.26e-11& 901.78& 546 \\ 
+131072--262144 &55& 1.70e-02& 4.75e-11& 2464.49& 598 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\end{document}
+
+
+
+%\documentclass{article}
+%\usepackage{booktabs}
+%\begin{document}
+%\begin{tabular}{lccccccc}
+%\toprule
+%\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+%Tack & (a) & (b) & (c) & (a) & (b) & (c) & diff\\
+%\midrule
+%Foo & 1 & 2 & 3 & A & B & C & $+$\\
+%Bar & 1 & 2 & 3 & A & B & C & $+$\\
+%\bottomrule
+%\end{tabular}

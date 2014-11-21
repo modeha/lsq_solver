@@ -14,6 +14,8 @@ import numpy
 import os
 import sys
 import logging
+import subprocess
+
 
 # Create root logger.
 log = logging.getLogger('cqp')
@@ -78,6 +80,7 @@ parser.add_option("-w", "--problem", action="store", dest="problem", help="probl
 
 # Parse command-line options
 (options, args) = parser.parse_args()
+
 Probname = ''
 #print 'Brave man! Using example block system!'
 Probname +='_4x4'
@@ -104,10 +107,10 @@ if options.n_dim is not None:
 if options.delta_size is not None:
     delta = options.delta_size
 else:
-    delta=1.0e-16
+    delta=1.0e-19
 # Set printing standards for arrays.
 
-if options.problem=='partial_DCT':
+if options.problem == 'DCT' or options.problem is None:
     lsqp = partial_DCT(n,m,delta)
     
 else:
@@ -178,7 +181,7 @@ if not multiple_problems:
 
     numpy.set_printoptions(threshold=5)
     numpy.set_printoptions(threshold='nan')
-    print x[1:10]
+    #print x[1:10]
 
 
     log.info('Non zero elements in minimizer %6.f'%nnz)
@@ -206,16 +209,26 @@ if not multiple_problems:
     #f.close()
     #f =open ('Results.txt','a+')
     #f.write('\n')
-    f.write('%-5s&      ' % Probname)
-    f.write('%-5d&       ' % regqp.iter)
-    f.write('%3e&   ' % regqp.obj_value)
-    f.write('%3e&   ' % regqp.kktResid)
-    f.write('%1.3f&   ' % regqp.solve_time)
-    f.write('%-5d\\\       ' % sum(regqp.Niter_lsmr))
+    f.write('%-15s&' % Probname)
+    f.write('%-5d&' % regqp.iter)
+    f.write('%-15.1e&' % regqp.obj_value)
+    f.write('%-15.1e&' % regqp.kktResid)
+    f.write('%-15.2f&' % regqp.solve_time)
+    f.write('%-5d\\\ ' % sum(regqp.Niter_lsmr))
     #f.write('%-5d       ' % nnz)
     #f.write('%3e   ' % norm_x0_x)
     f.write('\n')
-    f.close()    
+    f.close()
+    string_results = '%-5d\&' % regqp.iter
+    string_results += '%-15.1e\&' % regqp.obj_value
+    string_results += '%-15.1e\&' % regqp.kktResid
+    string_results += '%-15.2f\&' % regqp.solve_time
+    string_results +=  '%-5d\\\ ' % sum(regqp.Niter_lsmr)
+    string_caption = 'Comparison Solver LSQ  for  problem with $n=2^{t}$ and $m=2^{t-1}$'
+    #print string_results
+    #os.system("sed s/TABLE_CONTENTS/'"+string_results+"'/g template.tex > result_table.tex")
+    #os.system("sed -e s/TABLE_CAPTION/'"+string_caption+"'/g result_table.tex")
+
     type='.pyc'; path = os.getcwd()
 for file in os.listdir(path):
     if str(file[-len(type):]) ==type:

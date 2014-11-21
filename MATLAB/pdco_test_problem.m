@@ -51,11 +51,11 @@ end
   
   options = pdcoSet;
   options.StepTol = .9;
-  options.FeaTol       =  1e-6;
-  options.OptTol       =  1e-6;
-  options.MaxIter = 300;
+  options.FeaTol       =  1e-8;
+  options.OptTol       =  1e-8;
+  options.MaxIter = 900;
   options.mu0       = 1e-0;  % An absolute value
-  options.LSMRatol1 = 1e-6;  % For LPs, LSQR must solve quite accurately
+  options.LSMRatol1 = 1e-16;  % For LPs, LSQR must solve quite accurately
   options.wait      = 0;     % Allow options to be reviewed before solve
   options.Print     = 1;
   options.Method    = 3;  % Will change to 1 or 3
@@ -76,7 +76,7 @@ end
   bl      = [zn;-inf;-infm;zn;zn]; 
   bu      = [inf;inf;infm;inf;inf];
 
-  gamma   = 19;%       % Primal regularization.
+  gamma   = 19;%  DCT .19 for random 19     % Primal regularization.
   delta   = 1;       % 1e-3 or 1e-4 for LP;  1 for Least squares.
   d1      = gamma;      % Scalar for this test.
   d2      = em;         % D2 = I

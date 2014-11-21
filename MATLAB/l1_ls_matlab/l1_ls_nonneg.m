@@ -153,7 +153,8 @@ for ntiter = 0:MAX_NT_ITER
     if (~quiet) disp(sprintf('%4d %12.2e %15.5e %15.5e %11.1e %8d',...
         ntiter, gap, pobj, dobj, s, pitr)); end
 
-    if (gap/abs(dobj) < min([reltol,pobj,dobj]))
+    if (gap/abs(dobj) <reltol)
+        %takes more iteration using min([reltol,pobj,dobj]))
         status  = 'Solved';
         history = [pobjs-dobjs; pobjs; dobjs; sts; pitrs; pflgs];
         if (~quiet) disp('Absolute tolerance reached.'); end
@@ -186,9 +187,9 @@ for ntiter = 0:MAX_NT_ITER
     if (ntiter ~= 0 && pitr == 0) pcgtol = pcgtol*0.1; end
 
 if 1
-    [dx,pflg,prelres,pitr,presvec] = ...
-        pcg(@AXfunc_l1_ls,-gradphi,pcgtol,pcgmaxi,@Mfunc_l1_ls,...
-            [],dx,A,At,d1,1./prb);
+    [dx,pflg,~,pitr] = ...
+        pcg(@AXfunc_l1_ls,-gradphi,pcgtol,pcgmaxi,[],...
+            [],[],A,At,d1,[]);
 end
     %dx = (2*A'*A+diag(d1))\(-gradphi);
 

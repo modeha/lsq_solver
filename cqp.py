@@ -1820,7 +1820,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
             
             #tol_ = self.Tole[self.i]
         #self.i = self.i + 1
-        tol_ = min(self.tol,1e-6)
+        tol_ = 1e-12
         
         A,B,C = self.pykrylov()
         m,n = B.shape 
@@ -1851,7 +1851,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         
         if preconditioner:
             lsq = eval(self.iter_solver+'(B)')
-            lsq.solve(b, etol=tol_, M = N, N = M,show=False)
+            lsq.solve(b, etol=tol_,conlim=1e8, M = N, N = M,show=False)
             xsol = x_0 + lsq.x
             w = b - B * lsq.x
             ysol = N(w)

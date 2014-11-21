@@ -25,10 +25,10 @@ function [x,IterN,realTol,objtrue,time] = PDCOTest(m,n,k)
   x0    = ones(n,1);     % Initial x
   y0    = zeros(m,1);        % Initial y
   xsize = norm(x0,inf);                 % Estimate of norm(x,inf) at solution
-%  Anorm = normest(A, 1.0e-3);
-  %zsize = max(normest(A*A')+sqrt(n)*Anorm,1);% Estimate of norm(z,inf) at solution
-  zsize = max(m,n)/min(m,n);%.93
-  z0    = zsize*ones(n,1);         % Initial z
+  Anorm = normest(A, 1.0e-3);
+  zsize = max(normest(A*A')+sqrt(n)*Anorm,1);% Estimate of norm(z,inf) at solution
+  %zsize = max(m,n)/min(m,n);%.93
+  %z0    = zsize*ones(n,1);         % Initial z
 
   c       = zeros(n,1);
   b       = y;

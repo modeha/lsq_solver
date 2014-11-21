@@ -154,19 +154,19 @@ def z_v(n,J,v):
 def ATx(m,n,x):
     k = abs(m-n)
     if n < m:
-        return np.concatenate((math.sqrt(2)/2*idct(x), zeros([1,k])[0,:]), axis=0)
+        return np.concatenate((idct(x), zeros([1,k])[0,:]), axis=0)
     else:
-        return math.sqrt(2)/2*idct(x[0:m])
+        return idct(x[0:m])
 
 def Ax(m,n,x):
     #print m,n,'AX',x.size
     k = abs(m-n)
     if n < m:
         x = np.concatenate((x, np.zeros(k)), axis=0)
-        return  math.sqrt(2)/2*dct(x)
+        return  dct(x)
     else:
         #print dct(x[0:m]),'dct'
-        return math.sqrt(2)/2*dct(x[0:m]) 
+        return dct(x[0:m]) 
 
 def partial_DCT(p = 10, n = 4, delta = 1.0e-05):
     "n is signal dimension and m is number of measurements"
@@ -180,6 +180,7 @@ def partial_DCT(p = 10, n = 4, delta = 1.0e-05):
     eps = 0.001
     y = eps*np.ones(Q.shape[1])
     d = Q*y
+    
     if len(d.shape)>1:
         d = d[:,0]
     p, n = Q.shape
@@ -202,6 +203,7 @@ def partial_DCT(p = 10, n = 4, delta = 1.0e-05):
                                matvec_transp=lambda v: ATx(n,p,v)) 
     m, n = B.shape
     name = str(p)+'_'+str(n)+'_'+str(m)+'_l1_ls_RANDOM'
+    
     lsqpr = LSQRModel(Q=new_Q, B=B, d=d, c=c, Lcon=lcon, Ucon=ucon, Lvar=lvar,\
                     Uvar=uvar, name=name)
     return lsqpr
