@@ -612,6 +612,7 @@ function [x,IterN,realTol,objtrue,time,Niter_lsmr] = ...
   %---------------------------------------------------------------------
   % Main loop.
   %---------------------------------------------------------------------
+  index = 1;
   while ~converged
     PDitns = PDitns + 1;
 
@@ -720,10 +721,18 @@ function [x,IterN,realTol,objtrue,time,Niter_lsmr] = ...
           precon = false;  
           pdDDD3 = [];
         end
-
+        precon = false; 
         mat_lsmr_handle = @(x,mode) ...
             pdxxxlsmrmat(mode, m, n, x, pdMat, Method, precon, pdDDD1, d2, pdDDD3);
-
+        if options.tol
+            tol = options.tol;
+            atol= tol(index); btol=tol(index);
+            index = 1+index;
+        if index > 8
+            index = 8;
+        end
+        end
+       
         if lsmr_solver==1 % use PDCO's lsmr to solve system
             [dy, istop_lsmr, itncg, ~, normAr, ~, ~, ~] ...
                 = lsmr(mat_lsmr_handle, rhs, damp, atol, btol, conlim);  % dont set localSize
@@ -754,29 +763,32 @@ function [x,IterN,realTol,objtrue,time,Niter_lsmr] = ...
         g = rhs(n+1:end);
         f = rhs(1:n);         
         x_0 = -M*f;
-        %Bx_ = pdMat*x_0;%
-        Bx_ = pdMat( 1, m, n, x_0 );
+        Bx_ = pdMat*x_0;%
+        %Bx_ = pdMat( 1, m, n, x_0 );
         b_ = g-Bx_;
         %b_ = g-B*x_0;
         opts.M = N;
         opts.N = M;
         opts.itnlim = min(m,n);
         %opts.show = true;
+        mat_lsmr_handle = @(mode,m,n,x) ...
+             pdxxxmat( pdMat, mode, m, n, x );
         
-         [lsqr, flags, stats]   = lsmr_spot(B, b_,opts);  % dont set localSize
+         [lsqr, flags, stats]   = lsmr_spot(mat_lsmr_handle, b_,opts);  % dont set localSize
          
               istop_lsmr = stats.istop;
               normAr = stats.normAr;
               itncg = flags.niters;
               Niter_lsmr(end+1) = itncg;
               dx = x_0 + lsqr;
-              %w_b = b_ - B * lsqr;
-              w_b = b_ - B( 1, m, n, lsqr );
+              w_b = b_ - B * lsqr;
+              %w_b = b_ - B( 1, m, n, lsqr );
               dy = N*w_b;
 
               %dx = dx_(B,dy,H,w,fix);
-              
-         
+              grad      =   pdxxxmat( pdMat,2,m,n,dy );  % grad = A'dy
+              grad(fix) =   0;    % Is this needed?      % grad is a work vector
+              dx        =   H.*(grad - w);
               lsmr_norm(lsmr_i) = normAr;
               lsmr_i = lsmr_i+1;
               %norm(dx,2)

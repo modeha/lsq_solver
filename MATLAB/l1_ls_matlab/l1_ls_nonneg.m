@@ -1,4 +1,4 @@
-function [ntiter,opt,gap,x,history] = l1_ls_nonneg(A,varargin)
+function [ntiter,opt,gap,x,history,status] = l1_ls_nonneg(A,varargin)
 %
 % l1-Regularized Least Squares Problem Solver
 %
@@ -190,6 +190,10 @@ if 1
     [dx,pflg,~,pitr] = ...
         pcg(@AXfunc_l1_ls,-gradphi,pcgtol,pcgmaxi,[],...
             [],[],A,At,d1,[]);
+%         [dx,pflg,prelres,pitr,presvec] = ...
+%         pcg(@AXfunc_l1_ls,-gradphi,pcgtol,pcgmaxi,@Mfunc_l1_ls,...
+%             [],dx,A,At,d1,1./prb);
+
 end
     %dx = (2*A'*A+diag(d1))\(-gradphi);
 

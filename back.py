@@ -10,7 +10,6 @@ from lsqp import RegLSQPInteriorPointIterativeSolver4x4
 from nlpy.tools.norms import norm2
 from nlpy.tools.timing import cputime
 from optparse import OptionParser
-from time import gmtime, strftime
 import numpy
 import os
 import sys
@@ -53,6 +52,9 @@ parser.add_option("-t", "--tol", action="store", type="float", default=None,
 #parser.add_option("-n", "--n_dim", action="store", type="int", default=None,
         #dest="n_dim", help="Specify relative dimention")
 
+#parser.add_option("-k", "--multiple_problems", action="store", default=None,
+        #dest="multiple_problems", help="multiple problems")
+
 #parser.add_option("-m", "--m_dim", action="store", type="int", default=None,
         #dest="m_dim", help="Specify relative dimention")
 
@@ -82,6 +84,7 @@ parser.add_option("-w", "--problem", action="store", dest="problem", help="probl
 # Parse command-line options
 (options, args) = parser.parse_args()
 #print 'Brave man! Using example block system!'
+Probname ='_4x4'
 Solver = RegLSQPInteriorPointIterativeSolver4x4   # RegLSQInteriorPointSolver4x4
 
 opts_init = {}
@@ -105,44 +108,36 @@ if options.tol is not None:
 if options.delta_size is not None:
     delta = options.delta_size
 else:
-    delta=1.0e-06
+    delta=1.0e-19
 # Set printing standards for arrays.
 
 if options.problem == 'DCT' or options.problem is None:
     problem = partial_DCT
-    tol = [1e+3,1e+3,1e+3,1e-3,1e-5,1e-6,1e-7,1e-8]
     
 else:
     #m=4;n=6
     #lsqp = partial_DCT(160,60,delta)#partial_
     problem = Random
-    tol = [1e+3,1e+3,1e-8,1e-15,1e-15,1e-15,1e-15]
     #lsqp = exampleliop(n,m)
     
 numpy.set_printoptions(precision=3, linewidth=70, threshold=10, edgeitems=2)
 
-
+multiple_problems = len(args) > 2
 
 #if not options.verbose:
     #log.info(hdr)
     #log.info('-'*len(hdr)) 
-string_results =  ''
-j = 0
-for i in range(len(args)-1):
-    try:
-	m,n = int(args[i+j]),int(args[i+j+1])
-    except ValueError:
-	print "Oops!  That was no valid number.  Try again..."
-    j +=1
-    print m,n
-    t_setup = cputime()
+string_results =  '\n'
+for i in range(len(args)/2):
+    m,n = int(args[i]),int(args[i+1])
     
+    t_setup = cputime()
     lsqp = problem(m,n,delta)    
     t_setup = cputime() - t_setup
     
     # Pass problem to RegQP.
     regqp = Solver(lsqp,
-                   verbose=options.verbose,*tol,
+                   verbose=options.verbose,
                    **opts_init)
 
     regqp.solve(PredictorCorrector=not options.longstep,
@@ -172,17 +167,17 @@ for i in range(len(args)-1):
             #sys.stdout.write(' F')  # Could not regularize sufficiently.
         #sys.stdout.write('\n')
 	x = regqp.x[0:n]
-	x0 = 0.1*np.ones([1,n])
-	x0[0] = -0.1
-	norm_x0_x = norm2(x0-x)
+	norm_x0_x = norm2(.1*np.ones([1,n])-x)
     
 	nnz = nnz_elements(x,1e-3)
-	Probname = str(m)+'--'+str(n)
+	Probname = str(n)+'--'+str(m)
     
 	numpy.set_printoptions(threshold=5)
 	numpy.set_printoptions(threshold='nan')
-	print x[0:10]
-        log.info('difference between initialize point and  minimizer %6.f'%norm_x0_x)
+	#print x[1:10]
+    
+    
+	log.info('Non zero elements in minimizer %6.f'%nnz)
     
 	
 	x = regqp.x[0:n]
@@ -191,9 +186,9 @@ for i in range(len(args)-1):
 	log.info('Final cost : %21.15e' % regqp.obj_value)
 	log.info('Setup time : %6.2fs' % t_setup)
 	log.info('Solve time : %6.2fs' % regqp.solve_time)
-	print '#LSMR Iterations:',regqp.Niter_lsmr[2:-1]
-	log.info('#LSMR Iterations: %-d' % sum(regqp.Niter_lsmr[2:-1]))
-	log.info('%-d  %7.1e  %7.1e  %7.1e' % (regqp.iter,regqp.obj_value,regqp.kktResid,regqp.solve_time))
+	print '#LSMR Iterations:',regqp.Niter_lsmr
+	log.info('#LSMR Iterations: %-d' % sum(regqp.Niter_lsmr))
+	log.info('%-d  %7.1e  %7.1e  %7.1e %7.1e %-d' % (regqp.iter,regqp.obj_value,regqp.kktResid,regqp.solve_time,norm_x0_x,nnz))
 	#if not os.path.isfile('/Users/Mohsen/Documents/nlpy_mohsen/lsq/Results.txt'):
 		#f =open ('/Users/Mohsen/Documents/nlpy_mohsen/lsq/LSQ_Results.txt','a+')
 		#path =6*' '+'Name'+ 23*' '+'Iter'+13*' '+'Cost'+8*' '+'RelResidual'\
@@ -212,26 +207,30 @@ for i in range(len(args)-1):
 	f.write('%-15.1e&' % regqp.obj_value)
 	f.write('%-15.1e&' % regqp.kktResid)
 	f.write('%-15.2f&' % regqp.solve_time)
-	f.write('%-5d\\\ ' % sum(regqp.Niter_lsmr[2:-1]))
+	f.write('%-5d\\\ ' % sum(regqp.Niter_lsmr))
 	#f.write('%-5d       ' % nnz)
 	#f.write('%3e   ' % norm_x0_x)
 	f.write('\n')
 	f.close()
-
-	string_results +=  '%-15s\&' % Probname
+	
+	string_results +=  '\n'
 	string_results += '%-5d\&' % regqp.iter
 	string_results += '%-15.1e\&' % regqp.obj_value
 	string_results += '%-15.1e\&' % regqp.kktResid
 	string_results += '%-15.2f\&' % regqp.solve_time
-	string_results +=  '%-5d\\\\' % sum(regqp.Niter_lsmr)
-	string_results += '\\\\'
-t = strftime("%d-%H-%M-%S", gmtime())
-os.system("sed -e s/TABLE_CONTENTS/'"+string_results+"'/g template.tex > "+t+"result_table.tex")
- 
-#f = os.getcwd()+'/'
-#p = "/usr/texbin/pdflatex  "
-#print [p + f+'result_table.tex']
-#subprocess.Popen([p + f+'result_table.tex'], shell=True)
-##sts = os.waitpid(p.pid, 0)[1] 
-#h = 'open '+f+'result_table.pdf'
-#subprocess.Popen([h],shell=True)    
+	string_results +=  '%-5d\\\ ' % sum(regqp.Niter_lsmr)
+	string_results +=  '\n'	
+string_caption = 'Comparison Solver LSQ  for  problem with $n=2^{t}$ and $m=2^{t-1}$'
+os.system("sed s/TABLE_CONTENTS/'"+string_results+"'/g template.tex > result_table.tex")
+os.system("sed -e s/TABLE_CAPTION/'"+string_caption+"'/g result_table.tex")
+#os.system("sed s/TABLE_CONTENTS/'"+string_results+"'/g template.tex > result_table.tex")
+#os.system("sed -e s/TABLE_CAPTION/'"+string_caption+"'/g result_table.tex")	
+
+#log.info('-'*len(hdr))
+
+    
+    #type='.pyc';  
+    #print os.getcwd()
+#for file in os.listdir(os.getcwd()):
+    #if str(file[-len(type):]) ==type:
+        #os.remove(path+'/'+file)

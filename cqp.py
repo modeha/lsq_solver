@@ -1768,8 +1768,16 @@ class RegLSQInteriorPointSolver4x4(RegQPInteriorPointSolver3x3):
 class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):    
     """Use an iterative solver instead of  the augmented system"""
     def __init__(self, *args, **kwargs):
-        #self.Tole = [1e-04,1e-05,1e-06,1e-08,1e-12]
-        self.i = -1        
+        #self.Tole = [1e+3,1e+3,1e+3,1e-3,1e-5,1e-6,1e-7,1e-8]#DCT
+        #self.Tole = [1e-01,1e-01,1e-1,1e-06,1e-7,1e-8,1e-9,1e-10,1e-12]#DCT
+        #self.Tole = [1e-6,1e-08,1e-09,1e-12]
+        #self.Tole = [1e-5,1e-05,1e-05,1e-12]
+        #self.Tole = [1e+3,1e+3,1e-8,1e-15,1e-15,1e-15,1e-15]
+        self.Tole = list(args)
+        self.Tole.pop(0)
+        self.time = 0
+        
+        self.i = 0        
         super(RegLSQInteriorPointIterativeSolver4x4, self)\
              .__init__(*args, **kwargs)
         self.iter_solver = kwargs.get('iterSolve','LSMRFramework')
@@ -1814,13 +1822,13 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         from numpy import ones
         import numpy
         #numpy.set_printoptions(threshold='nan')
-        #if self.i >= len(self.Tole):
-            #tol_ = self.Tole[-1]
-        #else:
-            
-            #tol_ = self.Tole[self.i]
-        #self.i = self.i + 1
-        tol_ = 1e-12
+        if self.i >= len(self.Tole):
+            tol_ = self.Tole[-1]
+        else:
+            tol_ = 100*self.Tole[self.i]
+        self.i = self.i + 1
+        #print tol_
+        
         
         A,B,C = self.pykrylov()
         m,n = B.shape 
@@ -1847,11 +1855,16 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
         # self.regdu_min = 1.0e-10
         preconditioner = True#False#
         preconditioner = True#False
+        #tol_ = 1e-12
 
         
         if preconditioner:
             lsq = eval(self.iter_solver+'(B)')
-            lsq.solve(b, etol=tol_,conlim=1e8, M = N, N = M,show=False)
+            t_setup = cputime()
+            lsq.solve(b, damp=0.0, etol=tol_,atol = tol_,M = N, N = M,show=False)
+            #t_setup = cputime() - t_setup
+            #self.time += t_setup
+            #print self.time
             xsol = x_0 + lsq.x
             w = b - B * lsq.x
             ysol = N(w)
@@ -1859,7 +1872,7 @@ class RegLSQInteriorPointIterativeSolver4x4(RegLSQInteriorPointSolver4x4):
             sol_final = np.concatenate((xsol, ysol), axis=0)
         else:
             lsq = eval(self.iter_solver+'(self.H)')
-            lsq.solve(rhs,atol = tol_, btol = tol)
+            lsq.solve(rhs,atol = tol_, btol = tol_)
             sol_final=lsq.x
         return sol_final, 0, 0
 

@@ -144,13 +144,6 @@ def sign(x):
     return 1 if x >= 0 else -1
 
 
-def z_v(n,J,v):
-    z = np.zeros([max(n,v.shape[0]),1])[:,0]
-    J_n = J[:v.shape[0]]
-    #if  len(v.shape)==1:
-        #v = v.reshape(v.shape[0],1)
-    z[J_n] = v
-    return z
 def ATx(m,n,x):
     k = abs(m-n)
     if n < m:
@@ -159,7 +152,6 @@ def ATx(m,n,x):
         return idct(x[0:m])
 
 def Ax(m,n,x):
-    #print m,n,'AX',x.size
     k = abs(m-n)
     if n < m:
         x = np.concatenate((x, np.zeros(k)), axis=0)
@@ -168,30 +160,39 @@ def Ax(m,n,x):
         #print dct(x[0:m]),'dct'
         return dct(x[0:m]) 
 
+def parameter_d(m,eps = 0.01):
+
+    np.random.seed(1919)
+    #y = eps*np.zeros([m,1])
+    #y = sprandvec(m,45)
+    y = np.random.random([m,1])
+    y[0] = -0.1
+    return y
+
 def partial_DCT(p = 10, n = 4, delta = 1.0e-05):
     "n is signal dimension and m is number of measurements"
 
     #J = np.random.permutation(range(n)) # m randomly chosen indices
-    J = np.array(range(p))    
+    #J = np.array(range(p))    
     # generate the n*m partial DCT matrix whose n rows are
     # the rows of the m*m DCT matrix at the indices specified by J
     Q = LinearOperator(nargin=n, nargout=p, matvec=lambda v: Ax(p,n,v),
                            matvec_transp=lambda v: ATx(n,p,v))
-    eps = 0.001
-    y = eps*np.ones(Q.shape[1])
+    
+    y = parameter_d(Q.shape[1],eps = 0.01)
     d = Q*y
     
     if len(d.shape)>1:
         d = d[:,0]
     p, n = Q.shape
     
-    c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
+    c = np.concatenate((np.ones(n)*delta,np.zeros(n)), axis=1)
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
 
     uvar = np.ones(2*n)*inf
-    lvar = -np.ones(2*n)*inf
-    #lvar[0:n] = np.zeros(n)
+    #lvar = -np.ones(2*n)*inf
+    lvar = np.zeros(2*n)
 
     I = IdentityOperator(n, symmetric=True)
     # Build [ I  -I]
@@ -217,21 +218,19 @@ def Random(n = 10, m = 4, delta = 1.0e-05):
     Q = sp(matrix=as_llmat(np.random.random((m,n)).T))
     #Q = sp(matrix=as_llmat(np.random.rand(n,m)))
     Q = PysparseLinearOperator(Q)
-    eps = 0.1
-    y = eps*np.ones([m,1])
-    y = np.ones([m,1])
-    #y = sprandvec(m,45)
+    y = parameter_d(Q.shape[1],eps = 0.01)
     
     d = np.array(Q*y[:,0])
+    
     p = n; n = m
     
-    c = np.concatenate((np.zeros(n),np.ones(n)*delta), axis=1)
+    c = np.concatenate((np.ones(n)*delta,np.zeros(n)), axis=1)
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
 
     uvar = np.ones(2*n)*inf
     lvar = -np.ones(2*n)*inf
-    #lvar[0:n] = np.zeros(n)
+    #lvar[n:2*n] = np.zeros(n)
 
     I = IdentityOperator(n, symmetric=True)
     # Build [ I  -I]

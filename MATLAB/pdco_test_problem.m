@@ -1,33 +1,43 @@
 function [x,IterN,realTol,objtrue,time,Niter_lsmr]= ...
-    pdco_test_problem(n,m,test_problem)
+    pdco_test_problem(n,m,test_problem,epsilon,gamma)
 
 if n<m 
     error('n must be grater than m!')
 end
-delta = 1.0000e-19; % regularization parameter
+delta = 1.0000e-6; % regularization parameter
 
-if strcmp(test_problem,'partial_DCT_norm1')
+if strcmp(test_problem,'DCT')
     obj = @(mode,M,N,x) AXfunc_l1_ls(mode,M,N,x);
      M = m+2*n;
      N = 4*n+m;
      c = vertcat(zeros(n,1),delta*ones(n,1),zeros(m,1),zeros(2*n,1));
-     [~,~,y,~,~,~]= partialDCT_generate(m,n);
+     A = partialDCT(m,n); % A
+     At = A'; % transpose of A
+     d = parameterD(m,epsilon);
+     y = A*d;
+     y = y*(sqrt(2)/2);
+%     lambda = 1.0000e-6; % regularization parameter
+%      rel_tol = 1.0000e-06; % relative target duality gap
      b   = vertcat(y,zeros(2*n,1));
-elseif strcmp(test_problem,'random_norm1')
-    [obj,y] = random_test_PDCO(m,n);
+     tol = [1e+3,1e+3,1e+3,1e-3,1e-5,1e-6,1e-7,1e-8];
+
+elseif strcmp(test_problem,'PRNG')
+    [obj,y] = random_test_PDCO(m,n,epsilon);
      M = m+2*n;
      N = 4*n+m;
      c = vertcat(zeros(n,1),delta*ones(n,1),zeros(m,1),zeros(2*n,1));
      b   = vertcat(y,zeros(2*n,1)); 
-elseif strcmp(test_problem,'least_squares')
-     M = m;
-     N = n; 
-     c = zeros(n,1);
-     obj = rand(n,m);
-     I = eye(m);
-     I(1,1) = -2;
-     y = obj*I(:,1);
-     b   = y;
+    tol = [1e+3,1e+3,1e-8,1e-15,1e-15,1e-15,1e-15,1e-15];
+
+% elseif strcmp(test_problem,'least_squares')
+%      M = m;
+%      N = n; 
+%      c = zeros(n,1);
+%      obj = rand(n,m);
+%      I = eye(m);
+%      I(1,1) = -2;
+%      y = obj*I(:,1);
+%      b   = y;
 else
      error('!')
 end
@@ -50,17 +60,19 @@ end
 
   
   options = pdcoSet;
-  options.StepTol = .9;
-  options.FeaTol       =  1e-8;
-  options.OptTol       =  1e-8;
+  options.StepTol = .1;
+  options.FeaTol       =  1e-6;
+  options.OptTol       =  1e-6;
   options.MaxIter = 900;
   options.mu0       = 1e-0;  % An absolute value
-  options.LSMRatol1 = 1e-16;  % For LPs, LSQR must solve quite accurately
+  options.tol = []
+  %options.tol = 100*tol;
+  options.LSMRatol1 = 1e-12;  % For LPs, LSQR must solve quite accurately
   options.wait      = 0;     % Allow options to be reviewed before solve
   options.Print     = 1;
   options.Method    = 3;  % Will change to 1 or 3
                           %1=Cholesky  2=QR  3=LSMR  4=MINRES  21=SQD
-  options.LSMRatol1    = 1e-12;
+  %options.LSMRatol1    = 1e-12;
   options.LSMRatol2    = 1e-12;  % 
   %options.LSMRconlim   = 1e+8;  % 
  
@@ -76,7 +88,7 @@ end
   bl      = [zn;-inf;-infm;zn;zn]; 
   bu      = [inf;inf;infm;inf;inf];
 
-  gamma   = 19;%  DCT .19 for random 19     % Primal regularization.
+  %gamma   = .19;%  'PRNG' .19 for DCT 19     % Primal regularization.
   delta   = 1;       % 1e-3 or 1e-4 for LP;  1 for Least squares.
   d1      = gamma;      % Scalar for this test.
   d2      = em;         % D2 = I
@@ -91,14 +103,13 @@ end
 
 end
 
-function [A,y] = random_test_PDCO(m,n)
-
+function [A,y] = random_test_PDCO(m,n,epsilon)
  M = m+2*n;
  N = 4*n+m;
  rand('twister', 1919);
- Q = rand(m,n);
- epsilon = 0.001;
- d = epsilon*ones(n,1);
+ Q = sqrt(2)/2*rand(m,n);
+ d = parameterD(n,epsilon);
+ %d(2,1) = 1;
  y = (sqrt(2)/2)*(Q*d);
 
  I = eye(n);
@@ -122,7 +133,7 @@ function [y] = AXfunc_l1_ls(mode,M,N,x)
 %
 m = 2*M-N;
 n = (N-M)/2;
-[Q,~,~,~,~]= partialDCT_generate(m,n);
+Q = partialDCT(m,n);
 
 if mode ==1
     x1 = x(1:n);
