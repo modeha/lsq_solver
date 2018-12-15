@@ -126,15 +126,16 @@ numpy.set_printoptions(precision=3, linewidth=70, threshold=10, edgeitems=2)
 #if not options.verbose:
     #log.info(hdr)
     #log.info('-'*len(hdr)) 
+
 string_results =  ''
 j = 0
-for i in range(len(args)-1):
+for i in range(len(args)/2):
     try:
 	m,n = int(args[i+j]),int(args[i+j+1])
     except ValueError:
 	print "Oops!  That was no valid number.  Try again..."
     j +=1
-    print m,n
+    print "Dimention of test Problem is: ","m=",m," and n=",n
     t_setup = cputime()
     
     lsqp = problem(m,n,delta)    

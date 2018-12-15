@@ -202,7 +202,8 @@ if __name__ == "__main__":
         from pykrylov.linop import LinearOperator
         from pykrylov.linop import *
         from dctt import *
-        obj = partial_DCT(n = 2, m = 3, delta = 1.0e-05)
+        obj = partial_DCT(n = 2, p = 3, delta = 1.0e-05)
         print obj.cons(obj.x0)
         print obj.obj(obj.x0)
-        #Random(n = 3, m = 2, delta = 1.0e-05)
+        Random(n = 3, m = 2, delta = 1.0e-05)
+      

@@ -186,7 +186,8 @@ def partial_DCT(p = 10, n = 4, delta = 1.0e-05):
         d = d[:,0]
     p, n = Q.shape
     
-    c = np.concatenate((np.ones(n)*delta,np.zeros(n)), axis=1)
+    ctemp = np.concatenate((np.ones((1,n))*delta,np.zeros((1,n))), axis=1)
+    c = ctemp[0]
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
 
@@ -224,7 +225,8 @@ def Random(n = 10, m = 4, delta = 1.0e-05):
     
     p = n; n = m
     
-    c = np.concatenate((np.ones(n)*delta,np.zeros(n)), axis=1)
+    ctemp = np.concatenate((np.ones((1,n))*delta,np.zeros((1,n))), axis=1)
+    c = ctemp[0]
     ucon = np.zeros(2*n)
     lcon = -np.ones(2*n)*inf
 
@@ -271,6 +273,7 @@ if __name__ == "__main__":
     from toolslsq import *
     from pykrylov.linop import LinearOperator
     from pykrylov.linop import *
+    lsqp = partial_DCT(160,60,.1)
     n=8;p=3
     Q = LinearOperator(nargin=n, nargout=p, matvec=lambda v: Ax(p,n,v),
                            matvec_transp=lambda v: ATx(n,p,v))
@@ -326,9 +329,9 @@ if __name__ == "__main__":
     
     ##Q = LinearOperator(nargin=m, nargout=n, matvec=lambda v: Ax(n,m,v),
                                ##matvec_transp=lambda v: ATx(m,n,v))  
-    #n=16;m=4
+    n=16;m=4
     ##print sprandvec(m,n)
-    #obj = partial_DCT(n, m, delta = 1.0e-05)
+    obj = partial_DCT(n, m, delta = 1.0e-05)
     ###DCT(n = 3, m = 2, delta = 1.0e-05)
     ##obj.Q
     

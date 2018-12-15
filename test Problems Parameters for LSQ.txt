@@ -28,3 +28,122 @@ python nlpy_reglsq.py  -l -r 1e-6  -w 'DCT'  -p 6 -d 10 -i 10 2 8 4 16 8 32 16 6
 65536 262144
 131072 524288
 262144 1048576
+
+
+
+
+
+
+
+
+
+Dear Dominique,
+
+
+I decided to summarize what we did before as well as the final numerical results.
+
+we need also to add to the paper about the following steps:
+
+1- Explain about two solvers PDCO and l1-ls.
+2- Parameters used in the solvers.
+3- Advantages and disadvantages of solvers.
+4- How test problem generate.
+5- comparison of solvers.
+
+
+We test the solvers with two different kind of test problems:
+- 1) A pseudorandom number generator (PRNG)
+- 2) The discrete cosine transform (DCT)
+- dimension are in the range(2,262144) the powers of 2 
+
+The new tolerance that I send to LSMR, LSQ works very well. I change the tolerance for PDCO as the same I apply for LSQ.
+In this case PDCO also has better performance but not good as LSQ.
+
+l1-ls has better performance when I apply DCT test problem.
+For PRNG test problem, l1-ls has the worst performance since it does not use any preconditioner.
+
+- We can say that LSQ is robust than the others. 
+- As my experience PDCO and l1-ls are sensitive to both parameters and tolerances, especially PDCO.
+
+
+After I look at LSMR solver and run some test problem, I figured out that we don’t need to apply very small tolerance for “atol”.
+Especially for the three first iterations that we call LSMR.
+Previous I had to fix atol=1e-12 for all iterations and that took more time.
+Now, I fixed “atol” for three first iteration greater than 1e-3 and the rest(one or two last iterations) equal 1e-12.
+
+Now number of lsmr iterations and run time are one-third!
+One thing else, optimal values and number of iterations did’t change.
+
+The two following sections explain about PDCO and l1-ls, first explain about PDCO and next l1-ls by the end I will explain about parameter that I apply to solver as well as least squares problem. 
+
+PDCO:
+-A primal-dual interior method for solving linearly constrained optimization problems with a convex objective function ϕ(x):
+
+                              minimize  ϕ(x)+1/2∥D_1x∥^2+1/2∥r∥^2
+                             subject to
+                                                     Ax+D2r=b,
+                                                        l≤x≤u.
+where both x and r are variables. The m×n matrix A .
+
+-The positive-definite diagonal matrices D1, D2 provide primal and dual regularization. 
+-D2 determines whether each row of Ax≈b should be satisfied.
+
+-Nonnegative least squares problems are special case of PDCO via D2=I, l=0, u= infinity. 
+-Assumed that the data (A, b, c) have been scaled.
+-PDCO Apply 2X2 system.
+
+-In many test problem need to care about the zsize  γ and δ.
+-It is sensitive to the parameters (A, b, c).
+-Apply LSMR methods to compute the search step.(without using preconditioner)
+
+
+l1--ls:
+
+-l1--ls solves l1-regularized least squares problems.
+-l1 regularization based methods for sparse signal reconstruction (e.g., basis pursuit denoising and compressed sensing)
+l1-ls solves an optimization problem of the form:
+
+                                                 minimize ∥Ax − d∥2 + λ∥x∥1
+where the variable is x ∈ R^n and the problem data are A ∈ R^(m×n) and y ∈ R^m. Here, λ ≥ 0 is the regularization parameter. 
+
+-l1--ls can also solve l1-regularized LSPs with non-negativity constraints:
+
+                                        minimize ∥Ax − d∥2 + λsum(x_i)
+                                        subject to x_i ≥ 0, i = 1,...,n.
+
+-l1--ls describes a specialized interior-point method for solving large regularized LSP that Uses the preconditioned conjugate gradients algorithm to compute the search step. 
+l1--ls apply CG method to compute the search step.
+
+-Compute the step size 􏰊by backtracking line search without using preconditioner takes a lot of times to solve.
+-The backtracking linesearch sometimes inhibits convergence.
+As a stopping criterion, l1--ls uses the duality gap divided by the dual objective value.(By weak duality, the ratio is an upper bound on the relative sub-optimality.)
+The preconditioner used in the PCG to approximates the Hessian of the logarithmic barrier function.
+
+
+Parameters for the least square term ∥Ax − d∥2 + λ∥x∥1 selected as follow:
+
+-d = epsilon*rand([m,1])(epsilon= 0.001)
+
+-A = rand(m,n)(called PRNG) or A = DCT.
+
+Here are the parameters that I use in LSQ, PDCO, and L1-ls:
+-Fixed atol = tol = [1e+3,1e+2,1e+1,1e-3,1e-5,1e-6,1e-7,1e-8] for LSMR.
+-Fixed FeaTol = 1e-6 for all of them.
+-Fixed λ = 1.e-6 for all of them.
+-Using long step strategy for LSQ.
+-The parameters A and d are the same in in LSQ, PDCO, and L1-ls by using following command in 
+python and Matlab to generate the same matrix :
+rand('twister', 1919)
+
+Here some my observation of the numerical results.
+
+- PDCO uses special cases of Tikhonov regularization and solve a perturbed problem.
+- PDCO cannot handle very large problem.
+- PDCO takes more LSMR iteration than LSQ.
+- LSQ allows to recover a solution of the original primal-dual in many situations.	
+- While LSQ uses Long-step strategy get better performance than predictor-corrector.
+- Non of the three solver use a preconditioner to solve Newton-system.
+- All of the three solver use with the same tolerance(removed relative tolerance for LSQ).
+- l1_ls_nonneg(non negativity constraint version) specifically designed for solve l1 norm with non negativity constraint .
+- l1_ls_nonneg converges so slowly without using preconditioner(take so long to converge!).
+- l1_ls_nonneg  just solves small and medium size of problems.
