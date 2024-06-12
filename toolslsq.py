@@ -63,4 +63,5 @@ if __name__ == '__main__':
     Q2 = as_llmat(Q)
 
     as_llmat(PysparseMatrix(matrix=Q2))
-    print isinstance(Q2, PysparseMatrix)
+    #print isinstance(Q2, PysparseMatrix)
+    #this is test
